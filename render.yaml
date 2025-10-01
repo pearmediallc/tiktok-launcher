@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: tiktok-launcher
+    env: php
+    buildCommand: cd sdk && composer install
+    startCommand: php -S 0.0.0.0:$PORT
+    envVars:
+      - key: AUTH_USERNAME
+        sync: false
+      - key: AUTH_PASSWORD
+        sync: false
+      - key: TIKTOK_ACCESS_TOKEN
+        sync: false
+      - key: TIKTOK_ADVERTISER_ID
+        sync: false
