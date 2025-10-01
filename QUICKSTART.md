@@ -11,7 +11,7 @@ Get your TikTok Campaign Launcher running in 5 minutes!
 ## Step 1: Install Dependencies
 
 ```bash
-cd tiktok-business-ads-api-php-sdk
+cd sdk
 composer install
 cd ..
 ```

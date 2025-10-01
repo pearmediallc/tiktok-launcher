@@ -27,7 +27,7 @@ A production-ready web application for automating TikTok ad campaign creation th
 ### 1. Install Dependencies
 
 ```bash
-cd tiktok-business-ads-api-php-sdk
+cd sdk
 composer install
 ```
 
@@ -72,7 +72,7 @@ launcher/
 ├── style.css                          # Styling
 ├── .env                               # Environment configuration
 ├── README.md                          # This file
-└── tiktok-business-ads-api-php-sdk/   # TikTok SDK
+└── sdk/   # TikTok SDK
     ├── src/
     │   └── TikTokAds/
     │       ├── Campaign/              # Campaign endpoints

@@ -19,7 +19,7 @@ if (file_exists(__DIR__ . '/.env')) {
 }
 
 // Load TikTok SDK
-require_once __DIR__ . '/tiktok-business-ads-api-php-sdk/vendor/autoload.php';
+require_once __DIR__ . '/sdk/vendor/autoload.php';
 
 use TikTokAds\Campaign\Campaign;
 use TikTokAds\AdGroup\AdGroup;

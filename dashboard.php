@@ -13,7 +13,7 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TikTok Campaign Launcher - Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
     <div class="container">
@@ -238,6 +238,6 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
         <div id="toast" class="toast"></div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="assets/app.js"></script>
 </body>
 </html>
