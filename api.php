@@ -36,7 +36,7 @@ use TikTokAds\Tools\Tools;
 // SDK Configuration
 $config = [
     'access_token' => $_ENV['TIKTOK_ACCESS_TOKEN'] ?? '',
-    'environment'  => 'production',
+    'environment'  => $_ENV['TIKTOK_ENVIRONMENT'] ?? 'production',
     'api_version'  => 'v1.3'
 ];
 
