@@ -71,13 +71,12 @@ try {
             $adGroup = new AdGroup($config);
             $data = json_decode(file_get_contents('php://input'), true);
 
-            // validate datetime format helper
+            // Validate datetime format helper
             function is_valid_datetime($s) {
                 return preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $s);
             }
 
-            // generate a 168-char time_series string for given days/hours
-            // $days = [0..6] where 0 = Monday, 6 = Sunday
+            // Generate 168-char dayparting string
             function generate_time_series($startHour, $endHour, $days = [0,1,2,3,4,5,6]) {
                 $ts = '';
                 for ($d = 0; $d < 7; $d++) {
@@ -92,65 +91,67 @@ try {
                 return $ts;
             }
 
-            // Build base params
+            // --- REQUIRED fields per TikTok API ---
             $params = [
-                'advertiser_id' => $advertiser_id,
-                'campaign_id' => $data['campaign_id'],
-                'adgroup_name' => $data['adgroup_name'],
-                'placement_type' => 'PLACEMENT_TYPE_NORMAL',
-                'placements' => ['PLACEMENT_TIKTOK'],  // Changed to plural
-                'location_ids' => $data['location'] ?? ['6252001'], // Changed from targeting.location
-                'age_groups' => $data['age'] ?? ['AGE_18_24','AGE_25_34','AGE_35_44','AGE_45_54','AGE_55_100'], // Changed from targeting.age
-                'gender' => 'GENDER_UNLIMITED',  // Changed to string instead of array
-                'optimization_goal' => 'CLICK',  // Changed from optimize_goal
-                'billing_event' => 'CPM',
-                'budget_mode' => 'BUDGET_MODE_DAY',
-                'budget' => floatval($data['budget'] ?? 0),
-                'bid_type' => 'BID_TYPE_NO_BID',  // Required field
+                'advertiser_id'     => $advertiser_id,
+                'campaign_id'       => $data['campaign_id'],                      // required
+                'adgroup_name'      => $data['adgroup_name'],                     // required
+                'placement_type'    => 'PLACEMENT_TYPE_NORMAL',                   // required
+                'placements'        => ['PLACEMENT_TIKTOK'],                      // required
+                'optimization_goal' => 'CLICK',                                   // required
+                'billing_event'     => 'CPM',                                     // required
+                'budget_mode'       => 'BUDGET_MODE_DAY',                         // required
+                'budget'            => floatval($data['budget'] ?? 100),          // required
+                'bid_type'          => 'BID_TYPE_NO_BID',                         // required
             ];
 
-            // Scheduling logic - only SCHEDULE_START_END and SCHEDULE_FROM_NOW are valid
+            // --- Targeting (must be explicit) ---
+            $params['targeting'] = [
+                'location' => $data['location'] ?? ['6252001'],  // US as default
+                'age'      => $data['age'] ?? ['AGE_18_24','AGE_25_34'],
+                'gender'   => $data['gender'] ?? 'GENDER_UNLIMITED'
+            ];
+
+            // --- Scheduling ---
             if (!empty($data['schedule_start_time']) && !empty($data['schedule_end_time'])) {
                 if (!is_valid_datetime($data['schedule_start_time']) || !is_valid_datetime($data['schedule_end_time'])) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'Datetime must be in format YYYY-MM-DD HH:MM:SS']);
+                    echo json_encode(['success' => false, 'message' => 'Datetime must be YYYY-MM-DD HH:MM:SS']);
                     exit;
                 }
                 $params['schedule_type'] = 'SCHEDULE_START_END';
                 $params['schedule_start_time'] = $data['schedule_start_time'];
-                $params['schedule_end_time'] = $data['schedule_end_time'];
+                $params['schedule_end_time']   = $data['schedule_end_time'];
             } else {
-                // If no end time or no schedule at all, use SCHEDULE_FROM_NOW
                 $params['schedule_type'] = 'SCHEDULE_FROM_NOW';
             }
 
-            // Dayparting
+            // --- Dayparting ---
             if (!empty($data['dayparting'])) {
-                // Full 168-char binary string
                 if (strlen($data['dayparting']) !== 168) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'dayparting must be a 168-character binary string (24*7)']);
+                    echo json_encode(['success' => false, 'message' => 'dayparting must be 168-char binary string']);
                     exit;
                 }
                 $params['time_series_type'] = 'CUSTOMIZED';
-                $params['time_series'] = $data['dayparting'];
+                $params['time_series']      = $data['dayparting'];
             } elseif (isset($data['daypart_start_hour']) && isset($data['daypart_end_hour'])) {
-                // Generate from hour range
-                $startH = intval($data['daypart_start_hour']);
-                $endH = intval($data['daypart_end_hour']);
-                $days = $data['daypart_days'] ?? [0,1,2,3,4,5,6];
                 $params['time_series_type'] = 'CUSTOMIZED';
-                $params['time_series'] = generate_time_series($startH, $endH, $days);
+                $params['time_series']      = generate_time_series(
+                    intval($data['daypart_start_hour']),
+                    intval($data['daypart_end_hour']),
+                    $data['daypart_days'] ?? [0,1,2,3,4,5,6]
+                );
             }
 
-            // Call SDK
+            // --- Call TikTok API ---
             $response = $adGroup->create($params);
 
             echo json_encode([
                 'success' => empty($response->code),
-                'data' => $response->data ?? null,
+                'data'    => $response->data ?? null,
                 'message' => $response->message ?? 'Ad group created',
-                'code' => $response->code ?? null
+                'code'    => $response->code ?? null
             ]);
             break;
         case 'create_ad':
