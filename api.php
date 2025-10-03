@@ -91,25 +91,22 @@ try {
                 return $ts;
             }
 
-            // --- REQUIRED fields per TikTok API ---
+            // --- REQUIRED fields per TikTok API (exact format from docs) ---
             $params = [
                 'advertiser_id'     => $advertiser_id,
                 'campaign_id'       => $data['campaign_id'],                      // required
                 'adgroup_name'      => $data['adgroup_name'],                     // required
                 'placement_type'    => 'PLACEMENT_TYPE_NORMAL',                   // required
-                'placements'        => ['PLACEMENT_TIKTOK'],                      // required
-                'optimization_goal' => 'CLICK',                                   // required
-                'billing_event'     => 'CPM',                                     // required
+                'placement'         => ['PLACEMENT_TIKTOK'],                      // required (singular, not placements)
+                'location'          => [6252001],                                 // required (US, no quotes on number)
                 'budget_mode'       => 'BUDGET_MODE_DAY',                         // required
                 'budget'            => floatval($data['budget'] ?? 100),          // required
+                'optimize_goal'     => 'REACH',                                   // required (REACH for lead gen)
+                'pacing'            => 'PACING_MODE_SMOOTH',                      // required
+                'billing_event'     => 'CPM',                                     // required
                 'bid_type'          => 'BID_TYPE_NO_BID',                         // required
-            ];
-
-            // --- Targeting (must be explicit) ---
-            $params['targeting'] = [
-                'location' => $data['location'] ?? ['6252001'],  // US as default
-                'age'      => $data['age'] ?? ['AGE_18_24','AGE_25_34'],
-                'gender'   => $data['gender'] ?? 'GENDER_UNLIMITED'
+                'frequency'         => 2,                                         // frequency cap
+                'frequency_schedule'=> 3,                                         // frequency schedule
             ];
 
             // --- Scheduling ---
