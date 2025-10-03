@@ -71,6 +71,28 @@ try {
             $adGroup = new AdGroup($config);
             $data = json_decode(file_get_contents('php://input'), true);
 
+            // validate datetime format helper
+            function is_valid_datetime($s) {
+                return preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $s);
+            }
+
+            // generate a 168-char time_series string for given days/hours
+            // $days = [0..6] where 0 = Monday, 6 = Sunday
+            function generate_time_series($startHour, $endHour, $days = [0,1,2,3,4,5,6]) {
+                $ts = '';
+                for ($d = 0; $d < 7; $d++) {
+                    for ($h = 0; $h < 24; $h++) {
+                        if (in_array($d, $days) && $h >= $startHour && $h < $endHour) {
+                            $ts .= '1';
+                        } else {
+                            $ts .= '0';
+                        }
+                    }
+                }
+                return $ts;
+            }
+
+            // Build base params
             $params = [
                 'advertiser_id' => $advertiser_id,
                 'campaign_id' => $data['campaign_id'],
@@ -80,33 +102,68 @@ try {
                 'optimize_goal' => 'CLICK',
                 'billing_event' => 'CPM',
                 'budget_mode' => 'BUDGET_MODE_DAY',
-                'budget' => floatval($data['budget']),
-                'bid' => floatval($data['bid_price']),
-                'schedule_type' => 'SCHEDULE_FROM_START_TIME',
-                'schedule_start_time' => $data['schedule_start_time'],
+                'budget' => floatval($data['budget'] ?? 0),
+                'bid' => floatval($data['bid_price'] ?? 0),
                 'targeting' => [
-                    'location' => ['6252001'],
-                    'age' => ['AGE_18_24', 'AGE_25_34', 'AGE_35_44', 'AGE_45_54', 'AGE_55_100'],
-                    'gender' => ['GENDER_UNLIMITED']
+                    'location' => $data['location'] ?? ['6252001'], // US by default
+                    'age' => $data['age'] ?? ['AGE_18_24','AGE_25_34','AGE_35_44','AGE_45_54','AGE_55_100'],
+                    'gender' => $data['gender'] ?? ['GENDER_UNLIMITED']
                 ]
             ];
 
-            // Add dayparting if enabled
-            if (!empty($data['dayparting'])) {
-                $params['time_series_type'] = 'CUSTOMIZED';
-                $params['time_series'] = $data['dayparting'];
+            // Scheduling logic
+            if (!empty($data['schedule_start_time']) && !empty($data['schedule_end_time'])) {
+                if (!is_valid_datetime($data['schedule_start_time']) || !is_valid_datetime($data['schedule_end_time'])) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'Datetime must be in format YYYY-MM-DD HH:MM:SS']);
+                    exit;
+                }
+                $params['schedule_type'] = 'SCHEDULE_START_END';
+                $params['schedule_start_time'] = $data['schedule_start_time'];
+                $params['schedule_end_time'] = $data['schedule_end_time'];
+            } elseif (!empty($data['schedule_start_time'])) {
+                // Start time only - use SCHEDULE_FROM_START_TIME
+                if (!is_valid_datetime($data['schedule_start_time'])) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'Datetime must be in format YYYY-MM-DD HH:MM:SS']);
+                    exit;
+                }
+                $params['schedule_type'] = 'SCHEDULE_FROM_START_TIME';
+                $params['schedule_start_time'] = $data['schedule_start_time'];
+            } else {
+                // No schedule - start immediately
+                $params['schedule_type'] = 'SCHEDULE_FROM_NOW';
             }
 
+            // Dayparting
+            if (!empty($data['dayparting'])) {
+                // Full 168-char binary string
+                if (strlen($data['dayparting']) !== 168) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'dayparting must be a 168-character binary string (24*7)']);
+                    exit;
+                }
+                $params['time_series_type'] = 'CUSTOMIZED';
+                $params['time_series'] = $data['dayparting'];
+            } elseif (isset($data['daypart_start_hour']) && isset($data['daypart_end_hour'])) {
+                // Generate from hour range
+                $startH = intval($data['daypart_start_hour']);
+                $endH = intval($data['daypart_end_hour']);
+                $days = $data['daypart_days'] ?? [0,1,2,3,4,5,6];
+                $params['time_series_type'] = 'CUSTOMIZED';
+                $params['time_series'] = generate_time_series($startH, $endH, $days);
+            }
+
+            // Call SDK
             $response = $adGroup->create($params);
 
             echo json_encode([
                 'success' => empty($response->code),
                 'data' => $response->data ?? null,
-                'message' => $response->message ?? 'Ad group created successfully',
+                'message' => $response->message ?? 'Ad group created',
                 'code' => $response->code ?? null
             ]);
             break;
-
         case 'create_ad':
             $ad = new Ad($config);
             $data = json_decode(file_get_contents('php://input'), true);
