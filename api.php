@@ -109,7 +109,7 @@ try {
                 'bid_type' => 'BID_TYPE_NO_BID',  // Required field
             ];
 
-            // Scheduling logic
+            // Scheduling logic - only SCHEDULE_START_END and SCHEDULE_FROM_NOW are valid
             if (!empty($data['schedule_start_time']) && !empty($data['schedule_end_time'])) {
                 if (!is_valid_datetime($data['schedule_start_time']) || !is_valid_datetime($data['schedule_end_time'])) {
                     http_response_code(400);
@@ -119,17 +119,8 @@ try {
                 $params['schedule_type'] = 'SCHEDULE_START_END';
                 $params['schedule_start_time'] = $data['schedule_start_time'];
                 $params['schedule_end_time'] = $data['schedule_end_time'];
-            } elseif (!empty($data['schedule_start_time'])) {
-                // Start time only - use SCHEDULE_FROM_START_TIME
-                if (!is_valid_datetime($data['schedule_start_time'])) {
-                    http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'Datetime must be in format YYYY-MM-DD HH:MM:SS']);
-                    exit;
-                }
-                $params['schedule_type'] = 'SCHEDULE_FROM_START_TIME';
-                $params['schedule_start_time'] = $data['schedule_start_time'];
             } else {
-                // No schedule - start immediately
+                // If no end time or no schedule at all, use SCHEDULE_FROM_NOW
                 $params['schedule_type'] = 'SCHEDULE_FROM_NOW';
             }
 
