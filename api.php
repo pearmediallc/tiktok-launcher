@@ -78,24 +78,19 @@ try {
                 'placement_type' => 'PLACEMENT_TYPE_NORMAL',
                 'placements' => ['PLACEMENT_TIKTOK'],
                 'location_ids' => ['6252001'], // United States
-                'optimization_goal' => 'CONVERT',
-                'billing_event' => 'CPC',
-                'bid_type' => 'BID_TYPE_CUSTOM',
-                'bid_price' => floatval($data['bid_price']),
+                'optimize_goal' => 'CLICK',
+                'billing_event' => 'CPM',
                 'budget_mode' => 'BUDGET_MODE_DAY',
                 'budget' => floatval($data['budget']),
-                'schedule_type' => 'SCHEDULE_FROM_NOW', // No end time needed
-                'schedule_start_time' => $data['schedule_start_time'],
-                'dayparting' => $data['dayparting'] ?? null,
-                'timezone' => $data['timezone'] ?? 'America/Panama',
-                'promotion_type' => 'LEAD_GENERATION',
-                'optimization_event' => 'COMPLETE_PAYMENT', // Lead gen event
-                'promotion_target_type' => 'INSTANT_PAGE' // For TikTok Instant Page
+                'bid' => floatval($data['bid_price']),
+                'schedule_type' => 'SCHEDULE_FROM_NOW',
+                'schedule_start_time' => $data['schedule_start_time']
             ];
 
-            // Add pixel if provided
-            if (!empty($data['pixel_id'])) {
-                $params['pixel_id'] = $data['pixel_id'];
+            // Add dayparting if enabled
+            if (!empty($data['dayparting'])) {
+                $params['time_series_type'] = 'CUSTOMIZED';
+                $params['time_series'] = $data['dayparting'];
             }
 
             $response = $adGroup->create($params);
