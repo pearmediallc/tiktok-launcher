@@ -84,10 +84,11 @@ try {
                 'bid_price' => floatval($data['bid_price']),
                 'budget_mode' => 'BUDGET_MODE_DAY',
                 'budget' => floatval($data['budget']),
-                'schedule_type' => 'SCHEDULE_START_END',
+                'schedule_type' => 'SCHEDULE_FROM_NOW', // No end time needed
                 'schedule_start_time' => $data['schedule_start_time'],
                 'dayparting' => $data['dayparting'] ?? null,
-                'timezone' => $data['timezone'] ?? 'America/Panama'
+                'timezone' => $data['timezone'] ?? 'America/Panama',
+                'promotion_type' => 'WEBSITE'
             ];
 
             // Add pixel if provided
