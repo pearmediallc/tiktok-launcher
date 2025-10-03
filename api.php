@@ -78,7 +78,7 @@ try {
                 'placement_type' => 'PLACEMENT_TYPE_NORMAL',
                 'placements' => ['PLACEMENT_TIKTOK'],
                 'location_ids' => ['6252001'], // United States
-                'optimization_goal' => 'LEAD_GENERATION',
+                'optimization_goal' => 'CONVERT',
                 'billing_event' => 'CPC',
                 'bid_type' => 'BID_TYPE_CUSTOM',
                 'bid_price' => floatval($data['bid_price']),
@@ -88,7 +88,9 @@ try {
                 'schedule_start_time' => $data['schedule_start_time'],
                 'dayparting' => $data['dayparting'] ?? null,
                 'timezone' => $data['timezone'] ?? 'America/Panama',
-                'promotion_type' => 'WEBSITE'
+                'promotion_type' => 'LEAD_GENERATION',
+                'optimization_event' => 'COMPLETE_PAYMENT', // Lead gen event
+                'promotion_target_type' => 'INSTANT_PAGE' // For TikTok Instant Page
             ];
 
             // Add pixel if provided
