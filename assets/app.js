@@ -50,7 +50,8 @@ function initializeDayparting() {
             checkbox.className = 'hour-checkbox';
             checkbox.dataset.day = dayIndex;
             checkbox.dataset.hour = hour;
-            checkbox.checked = true; // Default all hours enabled
+            // Only check Monday (index 1) by default
+            checkbox.checked = (dayIndex === 1);
             td.appendChild(checkbox);
             tr.appendChild(td);
         }
@@ -72,22 +73,23 @@ function getDaypartingData() {
     }
 
     const checkboxes = document.querySelectorAll('.hour-checkbox');
-    const dayparting = {};
+    const dayparting = [];
 
-    checkboxes.forEach(cb => {
-        const day = cb.dataset.day;
-        const hour = cb.dataset.hour;
-
-        if (!dayparting[day]) {
-            dayparting[day] = [];
+    // TikTok expects format: "0100111..." where each digit represents an hour
+    // We need to build this for each day (0=Sunday, 6=Saturday)
+    for (let day = 0; day < 7; day++) {
+        let dayString = '';
+        for (let hour = 0; hour < 24; hour++) {
+            const checkbox = document.querySelector(`.hour-checkbox[data-day="${day}"][data-hour="${hour}"]`);
+            dayString += checkbox && checkbox.checked ? '1' : '0';
         }
-
-        if (cb.checked) {
-            dayparting[day].push(parseInt(hour));
+        // Only add days that have at least one hour selected
+        if (dayString.includes('1')) {
+            dayparting.push(`${day}${dayString}`);
         }
-    });
+    }
 
-    return dayparting;
+    return dayparting.length > 0 ? dayparting.join('') : null;
 }
 
 // Step navigation
