@@ -174,14 +174,21 @@ async function createAdGroup() {
     showLoading();
 
     try {
-        // Convert datetime to timestamp
-        const startTimestamp = new Date(startDate).getTime() / 1000;
+        // Convert datetime to TikTok format: "YYYY-MM-DD HH:MM:SS" in UTC
+        const startDateTime = new Date(startDate);
+        const year = startDateTime.getUTCFullYear();
+        const month = String(startDateTime.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(startDateTime.getUTCDate()).padStart(2, '0');
+        const hours = String(startDateTime.getUTCHours()).padStart(2, '0');
+        const minutes = String(startDateTime.getUTCMinutes()).padStart(2, '0');
+        const seconds = '00';
+        const scheduleStartTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
         const params = {
             campaign_id: state.campaignId,
             adgroup_name: adGroupName,
             budget: budget,
-            schedule_start_time: startTimestamp,
+            schedule_start_time: scheduleStartTime,
             timezone: timezone,
             bid_price: bidPrice,
             dayparting: getDaypartingData()
