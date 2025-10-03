@@ -143,6 +143,8 @@ async function createCampaign() {
 
         if (response.success && response.data && response.data.campaign_id) {
             state.campaignId = response.data.campaign_id;
+            // Display campaign ID on ad group step
+            document.getElementById('display-campaign-id').textContent = state.campaignId;
             showToast('Campaign created successfully', 'success');
             nextStep();
         } else {

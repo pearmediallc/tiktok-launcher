@@ -62,6 +62,9 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
             <!-- Step 2: Ad Group Creation -->
             <div class="step-content" id="step-2">
                 <h2>Create Ad Group</h2>
+                <div class="form-info" style="margin-bottom: 20px; background: #e8f5e9; padding: 12px; border-radius: 6px;">
+                    <p><strong>Campaign ID:</strong> <span id="display-campaign-id">-</span></p>
+                </div>
                 <div class="form-group">
                     <label>Ad Group Name</label>
                     <input type="text" id="adgroup-name" placeholder="Enter ad group name" required>
