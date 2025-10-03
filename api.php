@@ -61,7 +61,7 @@ try {
             ]);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null,
                 'message' => $response->message ?? 'Campaign created successfully'
             ]);
@@ -76,15 +76,19 @@ try {
                 'campaign_id' => $data['campaign_id'],
                 'adgroup_name' => $data['adgroup_name'],
                 'placement_type' => 'PLACEMENT_TYPE_NORMAL',
-                'placements' => ['PLACEMENT_TIKTOK'],
-                'location_ids' => ['6252001'], // United States
+                'placement' => ['PLACEMENT_TIKTOK'],
                 'optimize_goal' => 'CLICK',
                 'billing_event' => 'CPM',
                 'budget_mode' => 'BUDGET_MODE_DAY',
                 'budget' => floatval($data['budget']),
                 'bid' => floatval($data['bid_price']),
-                'schedule_type' => 'SCHEDULE_FROM_NOW',
-                'schedule_start_time' => $data['schedule_start_time']
+                'schedule_type' => 'SCHEDULE_FROM_START_TIME',
+                'schedule_start_time' => $data['schedule_start_time'],
+                'targeting' => [
+                    'location' => ['6252001'],
+                    'age' => ['AGE_18_24', 'AGE_25_34', 'AGE_35_44', 'AGE_45_54', 'AGE_55_100'],
+                    'gender' => ['GENDER_UNLIMITED']
+                ]
             ];
 
             // Add dayparting if enabled
@@ -96,9 +100,10 @@ try {
             $response = $adGroup->create($params);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null,
-                'message' => $response->message ?? 'Ad group created successfully'
+                'message' => $response->message ?? 'Ad group created successfully',
+                'code' => $response->code ?? null
             ]);
             break;
 
@@ -134,7 +139,7 @@ try {
             $response = $ad->create($params);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null,
                 'message' => $response->message ?? 'Ad created successfully'
             ]);
@@ -154,7 +159,7 @@ try {
             ]);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null,
                 'message' => $response->message ?? 'Image uploaded successfully'
             ]);
@@ -174,7 +179,7 @@ try {
             ]);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null,
                 'message' => $response->message ?? 'Video uploaded successfully'
             ]);
@@ -187,7 +192,7 @@ try {
             ]);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null
             ]);
             break;
@@ -199,7 +204,7 @@ try {
             ]);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null
             ]);
             break;
@@ -211,7 +216,7 @@ try {
             ]);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null
             ]);
             break;
@@ -223,7 +228,7 @@ try {
             ]);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null
             ]);
             break;
@@ -238,7 +243,7 @@ try {
             ]);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null
             ]);
             break;
@@ -253,7 +258,7 @@ try {
             ]);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null
             ]);
             break;
@@ -269,7 +274,7 @@ try {
             ]);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null,
                 'message' => $response->message ?? 'Ads published successfully'
             ]);
@@ -314,7 +319,7 @@ try {
             $response = $ad->create($params);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null,
                 'message' => $response->message ?? 'Ad duplicated successfully'
             ]);
@@ -361,7 +366,7 @@ try {
             $response = $adGroup->create($params);
 
             echo json_encode([
-                'success' => $response->hasErrors() == 0,
+                'success' => empty($response->code),
                 'data' => $response->data ?? null,
                 'message' => $response->message ?? 'Ad group duplicated successfully'
             ]);
