@@ -72,24 +72,26 @@ function getDaypartingData() {
         return null;
     }
 
-    // TikTok format: 336 characters (7 days × 48 half-hour slots)
-    // Each character represents a 30-minute time slot
+    // TikTok format: 168 characters (7 days × 24 hours)
+    // Each character represents 1 hour slot
     // '1' = enabled, '0' = disabled
     let dayparting = '';
 
-    // Days start from Sunday (0) to Saturday (6)
-    for (let day = 0; day < 7; day++) {
+    // Days: 0=Monday, 1=Tuesday, ..., 6=Sunday (TikTok ordering)
+    // Our UI: 0=Sunday, 1=Monday, ..., 6=Saturday
+    // Need to reorder: [1,2,3,4,5,6,0] to convert Sunday-Saturday to Monday-Sunday
+    const dayOrder = [1, 2, 3, 4, 5, 6, 0]; // Mon, Tue, Wed, Thu, Fri, Sat, Sun
+
+    for (let i = 0; i < 7; i++) {
+        const day = dayOrder[i];
         for (let hour = 0; hour < 24; hour++) {
             const checkbox = document.querySelector(`.hour-checkbox[data-day="${day}"][data-hour="${hour}"]`);
-            const isEnabled = (checkbox && checkbox.checked) ? '1' : '0';
-            
-            // Each hour = 2 half-hour slots (30 min each)
-            dayparting += isEnabled + isEnabled;
+            dayparting += (checkbox && checkbox.checked) ? '1' : '0';
         }
     }
 
-    // Must be exactly 336 characters (7 × 24 × 2)
-    return dayparting.length === 336 ? dayparting : null;
+    // Must be exactly 168 characters (7 × 24)
+    return dayparting.length === 168 ? dayparting : null;
 }
 
 // Step navigation
