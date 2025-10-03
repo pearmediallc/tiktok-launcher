@@ -98,17 +98,15 @@ try {
                 'campaign_id' => $data['campaign_id'],
                 'adgroup_name' => $data['adgroup_name'],
                 'placement_type' => 'PLACEMENT_TYPE_NORMAL',
-                'placement' => ['PLACEMENT_TIKTOK'],
-                'optimize_goal' => 'CLICK',
+                'placements' => ['PLACEMENT_TIKTOK'],  // Changed to plural
+                'location_ids' => $data['location'] ?? ['6252001'], // Changed from targeting.location
+                'age_groups' => $data['age'] ?? ['AGE_18_24','AGE_25_34','AGE_35_44','AGE_45_54','AGE_55_100'], // Changed from targeting.age
+                'gender' => 'GENDER_UNLIMITED',  // Changed to string instead of array
+                'optimization_goal' => 'CLICK',  // Changed from optimize_goal
                 'billing_event' => 'CPM',
                 'budget_mode' => 'BUDGET_MODE_DAY',
                 'budget' => floatval($data['budget'] ?? 0),
-                'bid' => floatval($data['bid_price'] ?? 0),
-                'targeting' => [
-                    'location' => $data['location'] ?? ['6252001'], // US by default
-                    'age' => $data['age'] ?? ['AGE_18_24','AGE_25_34','AGE_35_44','AGE_45_54','AGE_55_100'],
-                    'gender' => $data['gender'] ?? ['GENDER_UNLIMITED']
-                ]
+                'bid_type' => 'BID_TYPE_NO_BID',  // Required field
             ];
 
             // Scheduling logic
