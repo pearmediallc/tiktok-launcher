@@ -17,11 +17,20 @@ document.addEventListener('DOMContentLoaded', function() {
     loadMediaLibrary();
     addFirstAd();
 
-    // Set default start date to tomorrow
+    // Set default start date to tomorrow for both campaign and ad group
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
-    document.getElementById('start-date').value = formatDateTimeLocal(tomorrow);
+
+    // Campaign start date
+    if (document.getElementById('campaign-start-date')) {
+        document.getElementById('campaign-start-date').value = formatDateTimeLocal(tomorrow);
+    }
+
+    // Ad group start date
+    if (document.getElementById('start-date')) {
+        document.getElementById('start-date').value = formatDateTimeLocal(tomorrow);
+    }
 });
 
 // Format date for datetime-local input
@@ -128,18 +137,33 @@ function prevStep() {
 // Campaign creation
 async function createCampaign() {
     const campaignName = document.getElementById('campaign-name').value.trim();
+    const startDate = document.getElementById('campaign-start-date').value;
+    const endDate = document.getElementById('campaign-end-date').value;
 
-    if (!campaignName) {
-        showToast('Please enter a campaign name', 'error');
+    if (!campaignName || !startDate) {
+        showToast('Please enter campaign name and start date', 'error');
         return;
     }
 
     showLoading();
 
     try {
-        const response = await apiRequest('create_campaign', {
-            campaign_name: campaignName
-        });
+        // Convert datetime to TikTok format: "YYYY-MM-DD HH:MM:SS" in UTC
+        const startDateTime = new Date(startDate);
+        const scheduleStartTime = formatToTikTokDateTime(startDateTime);
+
+        const params = {
+            campaign_name: campaignName,
+            schedule_start_time: scheduleStartTime
+        };
+
+        // Add end time if provided
+        if (endDate) {
+            const endDateTime = new Date(endDate);
+            params.schedule_end_time = formatToTikTokDateTime(endDateTime);
+        }
+
+        const response = await apiRequest('create_campaign', params);
 
         if (response.success && response.data && response.data.campaign_id) {
             state.campaignId = response.data.campaign_id;
@@ -155,6 +179,17 @@ async function createCampaign() {
     } finally {
         hideLoading();
     }
+}
+
+// Helper function to format date to TikTok format
+function formatToTikTokDateTime(date) {
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = '00';
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
 // Ad Group creation

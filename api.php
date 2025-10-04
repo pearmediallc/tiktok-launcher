@@ -74,6 +74,14 @@ try {
                 'budget_mode' => 'BUDGET_MODE_INFINITE'
             ];
 
+            // Add schedule parameters if provided
+            if (!empty($data['schedule_start_time'])) {
+                $params['schedule_start_time'] = $data['schedule_start_time'];
+            }
+            if (!empty($data['schedule_end_time'])) {
+                $params['schedule_end_time'] = $data['schedule_end_time'];
+            }
+
             logToFile("TikTok API: POST /open_api/v1.3/campaign/create/");
             logToFile("Campaign Params: " . json_encode($params, JSON_PRETTY_PRINT));
 

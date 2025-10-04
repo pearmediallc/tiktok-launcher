@@ -52,6 +52,21 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                     <label>Campaign Name</label>
                     <input type="text" id="campaign-name" placeholder="Enter campaign name" required>
                 </div>
+
+                <div class="form-section">
+                    <h3>Schedule</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Start Date & Time (UTC)</label>
+                            <input type="datetime-local" id="campaign-start-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label>End Date & Time (UTC)</label>
+                            <input type="datetime-local" id="campaign-end-date">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-info">
                     <p><strong>Objective:</strong> Lead Generation</p>
                     <p><strong>Type:</strong> Manual Campaign</p>
