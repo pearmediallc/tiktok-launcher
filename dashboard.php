@@ -86,13 +86,11 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 </div>
 
                 <div class="form-section">
-                    <h3>Optimization & Location</h3>
-                    <div class="form-info">
-                        <p><strong>Promotion Type:</strong> Website</p>
-                        <p><strong>Optimization Goal:</strong> Conversion</p>
-                        <p><strong>Event:</strong> Lead</p>
-                        <p><strong>Location:</strong> United States</p>
-                        <p><strong>Placement:</strong> TikTok</p>
+                    <h3>Lead Generation Form</h3>
+                    <div class="form-group">
+                        <label>Lead Gen Form ID</label>
+                        <input type="text" id="lead-gen-form-id" placeholder="Enter TikTok Lead Form ID" required>
+                        <small>Get this from your TikTok Ads Manager > Tools > Lead Generation Forms</small>
                     </div>
                 </div>
 
@@ -100,26 +98,43 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                     <h3>Budget & Schedule</h3>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Daily Budget ($)</label>
-                            <input type="number" id="budget" placeholder="50" min="20" required>
+                            <label>Budget Mode</label>
+                            <select id="budget-mode">
+                                <option value="BUDGET_MODE_DAY">Daily Budget</option>
+                                <option value="BUDGET_MODE_TOTAL">Total Budget</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label>Start Date</label>
-                            <input type="datetime-local" id="start-date" required>
+                            <label>Budget Amount ($)</label>
+                            <input type="number" id="budget" placeholder="50" min="20" required>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>Timezone</label>
-                        <select id="timezone">
-                            <option value="America/Panama">UTC -5:00 East Standard Time (Panama)</option>
-                            <option value="America/New_York">UTC -5:00 Eastern Time (New York)</option>
-                            <option value="America/Chicago">UTC -6:00 Central Time (Chicago)</option>
-                            <option value="America/Denver">UTC -7:00 Mountain Time (Denver)</option>
-                            <option value="America/Los_Angeles">UTC -8:00 Pacific Time (Los Angeles)</option>
-                        </select>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Start Date & Time (UTC)</label>
+                            <input type="datetime-local" id="start-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Bid Amount ($)</label>
+                            <input type="number" id="bid-price" placeholder="1.00" step="0.01" min="0.01" required>
+                        </div>
                     </div>
+                </div>
 
+                <div class="form-section">
+                    <h3>Placement & Location</h3>
+                    <div class="form-info">
+                        <p><strong>Promotion Type:</strong> Lead Generation</p>
+                        <p><strong>Optimization Goal:</strong> LEAD</p>
+                        <p><strong>Billing Event:</strong> OCPM</p>
+                        <p><strong>Location:</strong> United States (6252001)</p>
+                        <p><strong>Placement:</strong> TikTok</p>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>Dayparting (Optional)</h3>
                     <div class="form-group">
                         <label>
                             <input type="checkbox" id="enable-dayparting" onchange="toggleDayparting()">
@@ -141,11 +156,6 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Bid Amount ($)</label>
-                        <input type="number" id="bid-price" placeholder="1.00" step="0.01" min="0.01" required>
                     </div>
                 </div>
 

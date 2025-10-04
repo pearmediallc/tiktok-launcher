@@ -122,25 +122,22 @@ try {
                 return $ts;
             }
 
-            // --- REQUIRED fields per TikTok API (exact format from curl example) ---
+            // Build params from frontend - all values configurable
             $params = [
-                'advertiser_id'         => $advertiser_id,
-                'campaign_id'           => $data['campaign_id'],
-                'adgroup_name'          => $data['adgroup_name'],
-                'promotion_type'        => 'WEBSITE',
-                'placement_type'        => 'PLACEMENT_TYPE_NORMAL',
-                'placements'            => ['PLACEMENT_TIKTOK'],
-                'video_download_disabled' => false,
-                'location_ids'          => ['6252001'],
-                'gender'                => 'GENDER_UNLIMITED',
-                'operating_systems'     => ['ANDROID'],
-                'budget_mode'           => 'BUDGET_MODE_TOTAL',
-                'budget'                => floatval($data['budget'] ?? 100),
-                'optimization_goal'     => 'CLICK',
-                'bid_type'              => 'BID_TYPE_NO_BID',
-                'billing_event'         => 'CPC',
-                'pacing'                => 'PACING_MODE_SMOOTH',
-                'operation_status'      => 'ENABLE',
+                'advertiser_id'      => $advertiser_id,
+                'campaign_id'        => $data['campaign_id'],
+                'adgroup_name'       => $data['adgroup_name'],
+                'placement_type'     => $data['placement_type'],
+                'placements'         => $data['placements'],
+                'promotion_type'     => $data['promotion_type'],
+                'lead_gen_form_id'   => $data['lead_gen_form_id'],
+                'optimization_goal'  => $data['optimization_goal'],
+                'billing_event'      => $data['billing_event'],
+                'budget_mode'        => $data['budget_mode'],
+                'budget'             => floatval($data['budget']),
+                'bid_type'           => $data['bid_type'],
+                'bid'                => floatval($data['bid']),
+                'location_ids'       => ['6252001'],  // US - can make configurable later
             ];
 
             // --- Scheduling ---

@@ -195,18 +195,19 @@ function formatToTikTokDateTime(date) {
 // Ad Group creation
 async function createAdGroup() {
     const adGroupName = document.getElementById('adgroup-name').value.trim();
+    const leadGenFormId = document.getElementById('lead-gen-form-id').value.trim();
+    const budgetMode = document.getElementById('budget-mode').value;
     const budget = parseFloat(document.getElementById('budget').value);
     const startDate = document.getElementById('start-date').value;
-    const timezone = document.getElementById('timezone').value;
     const bidPrice = parseFloat(document.getElementById('bid-price').value);
 
-    if (!adGroupName || !budget || !startDate || !bidPrice) {
+    if (!adGroupName || !leadGenFormId || !budget || !startDate || !bidPrice) {
         showToast('Please fill in all required fields', 'error');
         return;
     }
 
     if (budget < 20) {
-        showToast('Minimum daily budget is $20', 'error');
+        showToast('Minimum budget is $20', 'error');
         return;
     }
 
@@ -225,9 +226,19 @@ async function createAdGroup() {
         const params = {
             campaign_id: state.campaignId,
             adgroup_name: adGroupName,
+            placement_type: 'PLACEMENT_TYPE_NORMAL',
+            placements: ['PLACEMENT_TIKTOK'],
+            promotion_type: 'LEAD_GENERATION',
+            lead_gen_form_id: leadGenFormId,
+            optimization_goal: 'LEAD',
+            billing_event: 'OCPM',
+            budget_mode: budgetMode,
             budget: budget,
+            schedule_type: 'SCHEDULE_START_END',
             schedule_start_time: scheduleStartTime,
             schedule_end_time: scheduleEndTime,
+            bid_type: 'BID_TYPE_CUSTOM',
+            bid: bidPrice,
             dayparting: getDaypartingData()
         };
 
