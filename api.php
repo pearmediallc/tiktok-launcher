@@ -42,8 +42,22 @@ $config = [
 
 $advertiser_id = $_ENV['TIKTOK_ADVERTISER_ID'] ?? '';
 
+// Logging function
+function logToFile($message) {
+    $timestamp = date('Y-m-d H:i:s');
+    $logMessage = "[{$timestamp}] {$message}\n";
+    error_log($logMessage);  // This will appear in Render logs
+    file_put_contents(__DIR__ . '/api_debug.log', $logMessage, FILE_APPEND);
+}
+
 // Handle API requests
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
+
+// Log incoming request
+$requestData = json_decode(file_get_contents('php://input'), true);
+logToFile("============ INCOMING REQUEST ============");
+logToFile("Action: {$action}");
+logToFile("Request Data: " . json_encode($requestData, JSON_PRETTY_PRINT));
 
 header('Content-Type: application/json');
 
@@ -53,12 +67,21 @@ try {
             $campaign = new Campaign($config);
             $data = json_decode(file_get_contents('php://input'), true);
 
-            $response = $campaign->create([
+            $params = [
                 'advertiser_id' => $advertiser_id,
                 'campaign_name' => $data['campaign_name'],
                 'objective_type' => 'LEAD_GENERATION',
                 'budget_mode' => 'BUDGET_MODE_INFINITE'
-            ]);
+            ];
+
+            logToFile("TikTok API: POST /open_api/v1.3/campaign/create/");
+            logToFile("Campaign Params: " . json_encode($params, JSON_PRETTY_PRINT));
+
+            $response = $campaign->create($params);
+
+            logToFile("Campaign Response: " . json_encode($response, JSON_PRETTY_PRINT));
+            logToFile("Response Code: " . ($response->code ?? 'null'));
+            logToFile("Response Message: " . ($response->message ?? 'null'));
 
             echo json_encode([
                 'success' => empty($response->code),
@@ -146,7 +169,14 @@ try {
             }
 
             // --- Call TikTok API ---
+            logToFile("TikTok API: POST /open_api/v1.3/adgroup/create/");
+            logToFile("AdGroup Params: " . json_encode($params, JSON_PRETTY_PRINT));
+
             $response = $adGroup->create($params);
+
+            logToFile("AdGroup Response: " . json_encode($response, JSON_PRETTY_PRINT));
+            logToFile("Response Code: " . ($response->code ?? 'null'));
+            logToFile("Response Message: " . ($response->message ?? 'null'));
 
             echo json_encode([
                 'success' => empty($response->code),
