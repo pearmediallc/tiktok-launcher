@@ -86,10 +86,10 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 </div>
 
                 <div class="form-section">
-                    <h3>Lead Generation Form</h3>
+                    <h3>Lead Generation Form (Optional)</h3>
                     <div class="form-group">
                         <label>Lead Gen Form ID</label>
-                        <input type="text" id="lead-gen-form-id" placeholder="Enter TikTok Lead Form ID" required>
+                        <input type="text" id="lead-gen-form-id" placeholder="Enter TikTok Lead Form ID (optional)">
                         <small>Get this from your TikTok Ads Manager > Tools > Lead Generation Forms</small>
                     </div>
                 </div>
