@@ -205,6 +205,9 @@ try {
             if (!empty($data['pixel_id'])) {
                 $params['pixel_id'] = $data['pixel_id'];
             }
+            if (!empty($data['optimization_event'])) {
+                $params['optimization_event'] = $data['optimization_event'];
+            }
             if (!empty($data['custom_conversion_id'])) {
                 $params['custom_conversion_id'] = $data['custom_conversion_id'];
             }

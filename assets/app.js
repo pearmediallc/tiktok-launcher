@@ -223,13 +223,16 @@ async function createAdGroup() {
         endDateTime.setDate(endDateTime.getDate() + 30);
         const scheduleEndTime = formatToTikTokDateTime(endDateTime);
 
+        // Based on TikTok screenshots: Website location + Conversion goal
         const params = {
             campaign_id: state.campaignId,
             adgroup_name: adGroupName,
             placement_type: 'PLACEMENT_TYPE_NORMAL',
             placements: ['PLACEMENT_TIKTOK'],
-            promotion_type: 'LEAD_GENERATION',
-            optimization_goal: 'LEADS',
+            promotion_type: 'WEBSITE',  // Changed from LEAD_GENERATION to WEBSITE
+            pixel_id: leadGenFormId,  // Pixel ID is required for Website + Conversion
+            optimization_goal: 'CONVERT',  // Changed from LEADS to CONVERT
+            optimization_event: 'SUBMIT_FORM',  // The conversion event we're optimizing for
             billing_event: 'OCPM',
             budget_mode: budgetMode,
             budget: budget,
@@ -240,11 +243,6 @@ async function createAdGroup() {
             bid: bidPrice,
             dayparting: getDaypartingData()
         };
-
-        // Only add lead_gen_form_id if it's provided
-        if (leadGenFormId) {
-            params.lead_gen_form_id = leadGenFormId;
-        }
 
         const response = await apiRequest('create_adgroup', params);
 

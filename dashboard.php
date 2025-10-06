@@ -86,11 +86,11 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 </div>
 
                 <div class="form-section">
-                    <h3>Lead Generation Form (Optional)</h3>
+                    <h3>Pixel Configuration</h3>
                     <div class="form-group">
-                        <label>Lead Gen Form ID</label>
-                        <input type="text" id="lead-gen-form-id" placeholder="Enter TikTok Lead Form ID (optional)">
-                        <small>Get this from your TikTok Ads Manager > Tools > Lead Generation Forms</small>
+                        <label>Pixel ID (Required)</label>
+                        <input type="text" id="lead-gen-form-id" placeholder="Enter TikTok Pixel ID" required>
+                        <small>Get this from your TikTok Ads Manager > Tools > Events > Web Events. This is required for conversion tracking.</small>
                     </div>
                 </div>
 
@@ -123,10 +123,10 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 </div>
 
                 <div class="form-section">
-                    <h3>Placement & Location</h3>
+                    <h3>Optimization & Placement</h3>
                     <div class="form-info">
-                        <p><strong>Promotion Type:</strong> Lead Generation</p>
-                        <p><strong>Optimization Goal:</strong> LEADS</p>
+                        <p><strong>Promotion Type:</strong> Website</p>
+                        <p><strong>Optimization Goal:</strong> Conversion (Submit Form)</p>
                         <p><strong>Billing Event:</strong> OCPM</p>
                         <p><strong>Location:</strong> United States (6252001)</p>
                         <p><strong>Placement:</strong> TikTok</p>
