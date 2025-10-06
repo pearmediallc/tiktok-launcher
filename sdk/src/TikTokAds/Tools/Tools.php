@@ -114,6 +114,19 @@ class Tools extends TikTokAds {
             'params' => $params
         ) );
     }
+
+    /**
+     * Get pixel list
+     *
+     * @param array $params params for the request.
+     * @return response.
+     */
+    public function getPixels( $params ) {
+        return $this->get( array( // make request
+            'endpoint' => '/pixel/list/',
+            'params' => $params
+        ) );
+    }
 }
 
 ?>

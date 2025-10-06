@@ -373,6 +373,21 @@ try {
             ]);
             break;
 
+        case 'get_pixels':
+            $tools = new Tools($config);
+            $response = $tools->getPixels([
+                'advertiser_id' => $advertiser_id
+            ]);
+
+            logToFile("Get Pixels Response: " . json_encode($response, JSON_PRETTY_PRINT));
+
+            echo json_encode([
+                'success' => empty($response->code),
+                'data' => $response->data ?? null,
+                'message' => $response->message ?? null
+            ]);
+            break;
+
         case 'get_images':
             $file = new File($config);
             $response = $file->getImageInfo([
