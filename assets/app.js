@@ -608,18 +608,29 @@ async function loadPixels() {
     try {
         const response = await apiRequest('get_pixels', {}, 'GET');
 
+        console.log('Pixels API Response:', response);
+
         // Clear loading state
         pixelSelect.innerHTML = '<option value="">Select a pixel...</option>';
 
-        if (response.success && response.data && response.data.list) {
-            response.data.list.forEach(pixel => {
-                const option = document.createElement('option');
-                option.value = pixel.pixel_id;  // Use the numeric pixel_id
-                option.textContent = `${pixel.pixel_name || 'Unnamed Pixel'} (${pixel.pixel_code || pixel.pixel_id})`;
-                pixelSelect.appendChild(option);
-            });
+        if (response.success && response.data) {
+            // TikTok API might return pixels in different formats
+            const pixels = response.data.list || response.data.pixels || [response.data];
+
+            if (pixels && pixels.length > 0) {
+                pixels.forEach(pixel => {
+                    const option = document.createElement('option');
+                    option.value = pixel.pixel_id;  // Use the numeric pixel_id
+                    option.textContent = `${pixel.pixel_name || 'Unnamed Pixel'} (${pixel.pixel_code || pixel.pixel_id})`;
+                    pixelSelect.appendChild(option);
+                });
+            } else {
+                pixelSelect.innerHTML = '<option value="">No pixels found - Check your account</option>';
+            }
         } else {
-            pixelSelect.innerHTML = '<option value="">No pixels found - Check your account</option>';
+            console.error('Pixel API failed:', response);
+            const errorMsg = response.message || 'No pixels found - Check your account';
+            pixelSelect.innerHTML = `<option value="">Error: ${errorMsg}</option>`;
         }
     } catch (error) {
         console.error('Error loading pixels:', error);

@@ -383,11 +383,14 @@ try {
             ]);
 
             logToFile("Get Pixels Response: " . json_encode($response, JSON_PRETTY_PRINT));
+            logToFile("Response Code: " . ($response->code ?? 'null'));
+            logToFile("Response Message: " . ($response->message ?? 'null'));
 
             echo json_encode([
                 'success' => empty($response->code),
                 'data' => $response->data ?? null,
-                'message' => $response->message ?? null
+                'message' => $response->message ?? null,
+                'code' => $response->code ?? null
             ]);
             break;
 
