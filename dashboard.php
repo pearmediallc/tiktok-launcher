@@ -126,7 +126,7 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                     <h3>Placement & Location</h3>
                     <div class="form-info">
                         <p><strong>Promotion Type:</strong> Lead Generation</p>
-                        <p><strong>Optimization Goal:</strong> LEAD</p>
+                        <p><strong>Optimization Goal:</strong> LEADS</p>
                         <p><strong>Billing Event:</strong> OCPM</p>
                         <p><strong>Location:</strong> United States (6252001)</p>
                         <p><strong>Placement:</strong> TikTok</p>
