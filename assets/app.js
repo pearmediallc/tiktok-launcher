@@ -229,7 +229,7 @@ async function createAdGroup() {
             placement_type: 'PLACEMENT_TYPE_NORMAL',
             placements: ['PLACEMENT_TIKTOK'],
             promotion_type: 'LEAD_GENERATION',
-            optimization_goal: 'LEAD',
+            optimization_goal: 'LEADS',
             billing_event: 'OCPM',
             budget_mode: budgetMode,
             budget: budget,
