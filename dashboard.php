@@ -88,9 +88,11 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 <div class="form-section">
                     <h3>Pixel Configuration</h3>
                     <div class="form-group">
-                        <label>Pixel ID (Required)</label>
-                        <input type="text" id="lead-gen-form-id" placeholder="Enter TikTok Pixel ID" required>
-                        <small>Get this from your TikTok Ads Manager > Tools > Events > Web Events. This is required for conversion tracking.</small>
+                        <label>Select Pixel (Required)</label>
+                        <select id="lead-gen-form-id" required>
+                            <option value="">Loading pixels...</option>
+                        </select>
+                        <small>Select the pixel for conversion tracking (Submit Form event).</small>
                     </div>
                 </div>
 

@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeDayparting();
     loadIdentities();
     loadMediaLibrary();
+    loadPixels();  // Load available pixels
     addFirstAd();
 
     // Set default start date to tomorrow for both campaign and ad group
@@ -597,6 +598,32 @@ async function loadIdentities() {
         }
     } catch (error) {
         console.error('Error loading identities:', error);
+    }
+}
+
+// Load pixels from TikTok account
+async function loadPixels() {
+    const pixelSelect = document.getElementById('lead-gen-form-id');
+
+    try {
+        const response = await apiRequest('get_pixels', {}, 'GET');
+
+        // Clear loading state
+        pixelSelect.innerHTML = '<option value="">Select a pixel...</option>';
+
+        if (response.success && response.data && response.data.list) {
+            response.data.list.forEach(pixel => {
+                const option = document.createElement('option');
+                option.value = pixel.pixel_id;  // Use the numeric pixel_id
+                option.textContent = `${pixel.pixel_name || 'Unnamed Pixel'} (${pixel.pixel_code || pixel.pixel_id})`;
+                pixelSelect.appendChild(option);
+            });
+        } else {
+            pixelSelect.innerHTML = '<option value="">No pixels found - Check your account</option>';
+        }
+    } catch (error) {
+        console.error('Error loading pixels:', error);
+        pixelSelect.innerHTML = '<option value="">Error loading pixels</option>';
     }
 }
 
