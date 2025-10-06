@@ -229,7 +229,6 @@ async function createAdGroup() {
             placement_type: 'PLACEMENT_TYPE_NORMAL',
             placements: ['PLACEMENT_TIKTOK'],
             promotion_type: 'LEAD_GENERATION',
-            lead_gen_form_id: leadGenFormId,
             optimization_goal: 'LEAD',
             billing_event: 'OCPM',
             budget_mode: budgetMode,
@@ -241,6 +240,11 @@ async function createAdGroup() {
             bid: bidPrice,
             dayparting: getDaypartingData()
         };
+
+        // Only add lead_gen_form_id if it's provided
+        if (leadGenFormId) {
+            params.lead_gen_form_id = leadGenFormId;
+        }
 
         const response = await apiRequest('create_adgroup', params);
 
