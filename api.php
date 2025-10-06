@@ -122,6 +122,65 @@ try {
                 return $ts;
             }
 
+            // ========== VALIDATION BASED ON TIKTOK API DOCS ==========
+
+            // 1. REQUIRED FIELDS
+            $required_fields = ['campaign_id', 'adgroup_name', 'placement_type', 'placements',
+                                'promotion_type', 'optimization_goal', 'billing_event', 'budget_mode', 'budget'];
+            foreach ($required_fields as $field) {
+                if (empty($data[$field])) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => "Required field missing: {$field}"]);
+                    exit;
+                }
+            }
+
+            // 2. BUDGET MODE VALIDATION
+            // If budget_mode is BUDGET_MODE_TOTAL, schedule_end_time is REQUIRED
+            if ($data['budget_mode'] === 'BUDGET_MODE_TOTAL') {
+                if (empty($data['schedule_end_time'])) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'schedule_end_time is required when budget_mode is BUDGET_MODE_TOTAL']);
+                    exit;
+                }
+            }
+
+            // 3. PIXEL_ID VALIDATION
+            // pixel_id is REQUIRED when optimization_goal is CONVERT or VALUE
+            if (in_array($data['optimization_goal'], ['CONVERT', 'VALUE'])) {
+                if (empty($data['pixel_id'])) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'pixel_id is required when optimization_goal is CONVERT or VALUE']);
+                    exit;
+                }
+            }
+
+            // 4. MESSAGING APP VALIDATION
+            // For LEAD_GEN_CLICK_TO_SOCIAL_MEDIA_APP_MESSAGE promotion type
+            if ($data['promotion_type'] === 'LEAD_GEN_CLICK_TO_SOCIAL_MEDIA_APP_MESSAGE') {
+                if (empty($data['messaging_app_type'])) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'messaging_app_type is required for LEAD_GEN_CLICK_TO_SOCIAL_MEDIA_APP_MESSAGE']);
+                    exit;
+                }
+
+                // If optimization_goal is CONVERSATION, messaging_app_type cannot be ZALO, LINE, or IM_URL
+                if ($data['optimization_goal'] === 'CONVERSATION') {
+                    if (in_array($data['messaging_app_type'], ['ZALO', 'LINE', 'IM_URL'])) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'message' => 'When optimization_goal is CONVERSATION, messaging_app_type cannot be ZALO, LINE, or IM_URL']);
+                        exit;
+                    }
+
+                    // message_event_set_id may be required
+                    if (empty($data['message_event_set_id']) && empty($data['messaging_app_account_id'])) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'message' => 'message_event_set_id or messaging_app_account_id is required when optimization_goal is CONVERSATION']);
+                        exit;
+                    }
+                }
+            }
+
             // Build params from frontend - all values configurable
             $params = [
                 'advertiser_id'      => $advertiser_id,
@@ -130,7 +189,6 @@ try {
                 'placement_type'     => $data['placement_type'],
                 'placements'         => $data['placements'],
                 'promotion_type'     => $data['promotion_type'],
-                'lead_gen_form_id'   => $data['lead_gen_form_id'],
                 'optimization_goal'  => $data['optimization_goal'],
                 'billing_event'      => $data['billing_event'],
                 'budget_mode'        => $data['budget_mode'],
@@ -139,6 +197,41 @@ try {
                 'bid'                => floatval($data['bid']),
                 'location_ids'       => ['6252001'],  // US - can make configurable later
             ];
+
+            // Add optional fields if present
+            if (!empty($data['lead_gen_form_id'])) {
+                $params['lead_gen_form_id'] = $data['lead_gen_form_id'];
+            }
+            if (!empty($data['pixel_id'])) {
+                $params['pixel_id'] = $data['pixel_id'];
+            }
+            if (!empty($data['custom_conversion_id'])) {
+                $params['custom_conversion_id'] = $data['custom_conversion_id'];
+            }
+            if (!empty($data['messaging_app_type'])) {
+                $params['messaging_app_type'] = $data['messaging_app_type'];
+            }
+            if (!empty($data['messaging_app_account_id'])) {
+                $params['messaging_app_account_id'] = $data['messaging_app_account_id'];
+            }
+            if (!empty($data['message_event_set_id'])) {
+                $params['message_event_set_id'] = $data['message_event_set_id'];
+            }
+            if (!empty($data['deep_funnel_optimization_status'])) {
+                $params['deep_funnel_optimization_status'] = $data['deep_funnel_optimization_status'];
+            }
+            if (isset($data['search_result_enabled'])) {
+                $params['search_result_enabled'] = (bool)$data['search_result_enabled'];
+            }
+            if (isset($data['share_disabled'])) {
+                $params['share_disabled'] = (bool)$data['share_disabled'];
+            }
+            if (!empty($data['purchase_intention_keyword_ids'])) {
+                $params['purchase_intention_keyword_ids'] = $data['purchase_intention_keyword_ids'];
+            }
+            if (!empty($data['category_exclusion_ids'])) {
+                $params['category_exclusion_ids'] = $data['category_exclusion_ids'];
+            }
 
             // --- Scheduling ---
             if (!empty($data['schedule_start_time']) && !empty($data['schedule_end_time'])) {
