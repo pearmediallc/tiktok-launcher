@@ -88,11 +88,29 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 <div class="form-section">
                     <h3>Pixel Configuration</h3>
                     <div class="form-group">
-                        <label>Select Pixel (Required)</label>
-                        <select id="lead-gen-form-id" required>
+                        <label>Pixel Selection Method</label>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="radio" name="pixel-method" value="dropdown" checked onchange="togglePixelInput()">
+                                Select from list
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="radio" name="pixel-method" value="manual" onchange="togglePixelInput()">
+                                Enter manually
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group" id="pixel-dropdown-container">
+                        <label>Select Pixel</label>
+                        <select id="lead-gen-form-id">
                             <option value="">Loading pixels...</option>
                         </select>
                         <small>Select the pixel for conversion tracking (Submit Form event).</small>
+                    </div>
+                    <div class="form-group" id="pixel-manual-container" style="display: none;">
+                        <label>Pixel ID (Required)</label>
+                        <input type="text" id="pixel-manual-input" placeholder="Enter numeric Pixel ID (e.g., 1234567890)">
+                        <small>Get this from TikTok Ads Manager > Tools > Events > Web Events. Use the numeric pixel_id, not the pixel_code.</small>
                     </div>
                 </div>
 

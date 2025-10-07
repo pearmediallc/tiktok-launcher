@@ -196,13 +196,19 @@ function formatToTikTokDateTime(date) {
 // Ad Group creation
 async function createAdGroup() {
     const adGroupName = document.getElementById('adgroup-name').value.trim();
-    const leadGenFormId = document.getElementById('lead-gen-form-id').value.trim();
+
+    // Get pixel ID from either dropdown or manual input based on selection
+    const pixelMethod = document.querySelector('input[name="pixel-method"]:checked').value;
+    const pixelId = pixelMethod === 'manual'
+        ? document.getElementById('pixel-manual-input').value.trim()
+        : document.getElementById('lead-gen-form-id').value.trim();
+
     const budgetMode = document.getElementById('budget-mode').value;
     const budget = parseFloat(document.getElementById('budget').value);
     const startDate = document.getElementById('start-date').value;
     const bidPrice = parseFloat(document.getElementById('bid-price').value);
 
-    if (!adGroupName || !leadGenFormId || !budget || !startDate || !bidPrice) {
+    if (!adGroupName || !pixelId || !budget || !startDate || !bidPrice) {
         showToast('Please fill in all required fields', 'error');
         return;
     }
@@ -231,7 +237,7 @@ async function createAdGroup() {
             placement_type: 'PLACEMENT_TYPE_NORMAL',
             placements: ['PLACEMENT_TIKTOK'],
             promotion_type: 'WEBSITE',  // Changed from LEAD_GENERATION to WEBSITE
-            pixel_id: leadGenFormId,  // Pixel ID is required for Website + Conversion
+            pixel_id: pixelId,  // Pixel ID is required for Website + Conversion
             optimization_goal: 'CONVERT',  // Changed from LEADS to CONVERT
             optimization_event: 'SUBMIT_FORM',  // The conversion event we're optimizing for
             billing_event: 'OCPM',
@@ -847,4 +853,19 @@ function showToast(message, type = 'info') {
     setTimeout(() => {
         toast.classList.remove('show');
     }, 3000);
+}
+
+// Toggle between pixel dropdown and manual input
+function togglePixelInput() {
+    const pixelMethod = document.querySelector('input[name="pixel-method"]:checked').value;
+    const dropdownContainer = document.getElementById('pixel-dropdown-container');
+    const manualContainer = document.getElementById('pixel-manual-container');
+
+    if (pixelMethod === 'manual') {
+        dropdownContainer.style.display = 'none';
+        manualContainer.style.display = 'block';
+    } else {
+        dropdownContainer.style.display = 'block';
+        manualContainer.style.display = 'none';
+    }
 }
