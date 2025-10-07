@@ -186,17 +186,31 @@ try {
                 'advertiser_id'      => $advertiser_id,
                 'campaign_id'        => $data['campaign_id'],
                 'adgroup_name'       => $data['adgroup_name'],
-                'placement_type'     => $data['placement_type'],
-                'placements'         => $data['placements'],
+
+                // OPTIMIZATION
                 'promotion_type'     => $data['promotion_type'],
                 'optimization_goal'  => $data['optimization_goal'],
                 'billing_event'      => $data['billing_event'],
+
+                // PLACEMENTS
+                'placement_type'     => $data['placement_type'],
+                'placements'         => $data['placements'],
+
+                // BUDGET AND SCHEDULE
                 'budget_mode'        => $data['budget_mode'],
                 'budget'             => floatval($data['budget']),
                 'bid_type'           => $data['bid_type'],
-                'bid'                => floatval($data['bid']),
-                'location_ids'       => ['6252001'],  // US - can make configurable later
+
+                // TARGETING
+                'location_ids'       => $data['location_ids'] ?? ['6252001'],
             ];
+
+            // Add bid price if provided
+            if (!empty($data['conversion_bid_price']) && floatval($data['conversion_bid_price']) > 0) {
+                $params['conversion_bid_price'] = floatval($data['conversion_bid_price']);
+            } elseif (!empty($data['bid']) && floatval($data['bid']) > 0) {
+                $params['bid'] = floatval($data['bid']);
+            }
 
             // Add optional fields if present
             if (!empty($data['lead_gen_form_id'])) {
@@ -205,11 +219,35 @@ try {
             if (!empty($data['pixel_id'])) {
                 $params['pixel_id'] = $data['pixel_id'];
             }
+            if (!empty($data['promotion_target_type'])) {
+                $params['promotion_target_type'] = $data['promotion_target_type'];
+            }
             if (!empty($data['optimization_event'])) {
                 $params['optimization_event'] = $data['optimization_event'];
             }
             if (!empty($data['custom_conversion_id'])) {
                 $params['custom_conversion_id'] = $data['custom_conversion_id'];
+            }
+            // Attribution settings
+            if (!empty($data['click_attribution_window'])) {
+                $params['click_attribution_window'] = $data['click_attribution_window'];
+            }
+            if (!empty($data['view_attribution_window'])) {
+                $params['view_attribution_window'] = $data['view_attribution_window'];
+            }
+            if (!empty($data['attribution_event_count'])) {
+                $params['attribution_event_count'] = $data['attribution_event_count'];
+            }
+            // Demographics
+            if (!empty($data['age_groups'])) {
+                $params['age_groups'] = $data['age_groups'];
+            }
+            if (!empty($data['gender'])) {
+                $params['gender'] = $data['gender'];
+            }
+            // Pacing
+            if (!empty($data['pacing'])) {
+                $params['pacing'] = $data['pacing'];
             }
             if (!empty($data['messaging_app_type'])) {
                 $params['messaging_app_type'] = $data['messaging_app_type'];

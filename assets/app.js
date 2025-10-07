@@ -225,24 +225,49 @@ async function createAdGroup() {
         const startDateTime = new Date(startDate);
         const scheduleStartTime = formatToTikTokDateTime(startDateTime);
 
-        // Based on TikTok screenshots: Website location + Conversion goal
+        // Based on TikTok screenshots: Complete ad group configuration
         const params = {
+            // BASIC INFO
             campaign_id: state.campaignId,
             adgroup_name: adGroupName,
-            placement_type: 'PLACEMENT_TYPE_NORMAL',
-            placements: ['PLACEMENT_TIKTOK'],
-            promotion_type: 'WEBSITE',  // Website-based conversion
-            pixel_id: pixelId,  // Pixel ID is required for Website + Conversion
-            optimization_goal: 'CONVERT',  // Conversion optimization
-            optimization_event: 'FORM',  // Form submission event (not SUBMIT_FORM)
+
+            // OPTIMIZATION (Website Form - Submit form event)
+            promotion_type: 'APP',  // For Website option
+            promotion_target_type: 'EXTERNAL_WEBSITE',  // Website Form
+            pixel_id: pixelId,  // Data connection pixel
+            optimization_event: 'COMPLETE_REGISTRATION',  // Submit form event
+            optimization_goal: 'CONVERT',  // Conversion goal
             billing_event: 'OCPM',
-            budget_mode: budgetMode,
+
+            // ATTRIBUTION SETTINGS
+            click_attribution_window: 'SEVEN_DAYS',  // 7-day click
+            view_attribution_window: 'ONE_DAY',  // 1-day view
+            attribution_event_count: 'EVERY',  // Event count: Every
+
+            // PLACEMENTS
+            placement_type: 'PLACEMENT_TYPE_NORMAL',  // Select placement
+            placements: ['PLACEMENT_TIKTOK'],  // TikTok only
+
+            // DEMOGRAPHICS - TARGETING
+            location_ids: ['6252001'],  // United States
+            age_groups: ['AGE_18_24', 'AGE_25_34', 'AGE_35_44', 'AGE_45_54', 'AGE_55_100'],
+            gender: 'GENDER_UNLIMITED',  // All genders
+
+            // BUDGET AND SCHEDULE
+            budget_mode: budgetMode,  // BUDGET_MODE_DYNAMIC_DAILY_BUDGET or BUDGET_MODE_DAY
             budget: budget,
-            schedule_type: 'SCHEDULE_FROM_NOW',  // Run continuously from start time
-            schedule_start_time: scheduleStartTime,  // Only start time, no end time
-            bid_type: 'BID_TYPE_CUSTOM',
-            bid: bidPrice,
-            dayparting: getDaypartingData()
+            schedule_type: 'SCHEDULE_FROM_NOW',  // Set start time and run continuously
+            schedule_start_time: scheduleStartTime,
+
+            // BIDDING
+            bid_type: bidPrice > 0 ? 'BID_TYPE_CUSTOM' : 'BID_TYPE_NO_BID',
+            conversion_bid_price: bidPrice > 0 ? bidPrice : undefined,
+
+            // PACING
+            pacing: 'PACING_MODE_SMOOTH',  // Standard delivery
+
+            // DAYPARTING (optional)
+            ...getDaypartingData()
         };
 
         const response = await apiRequest('create_adgroup', params);
