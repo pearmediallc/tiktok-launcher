@@ -225,27 +225,21 @@ async function createAdGroup() {
         const startDateTime = new Date(startDate);
         const scheduleStartTime = formatToTikTokDateTime(startDateTime);
 
-        // Calculate end time (30 days from start)
-        const endDateTime = new Date(startDateTime);
-        endDateTime.setDate(endDateTime.getDate() + 30);
-        const scheduleEndTime = formatToTikTokDateTime(endDateTime);
-
         // Based on TikTok screenshots: Website location + Conversion goal
         const params = {
             campaign_id: state.campaignId,
             adgroup_name: adGroupName,
             placement_type: 'PLACEMENT_TYPE_NORMAL',
             placements: ['PLACEMENT_TIKTOK'],
-            promotion_type: 'WEBSITE',  // Changed from LEAD_GENERATION to WEBSITE
+            promotion_type: 'WEBSITE',  // Website-based conversion
             pixel_id: pixelId,  // Pixel ID is required for Website + Conversion
-            optimization_goal: 'CONVERT',  // Changed from LEADS to CONVERT
-            optimization_event: 'SUBMIT_FORM',  // The conversion event we're optimizing for
+            optimization_goal: 'CONVERT',  // Conversion optimization
+            optimization_event: 'FORM',  // Form submission event (not SUBMIT_FORM)
             billing_event: 'OCPM',
             budget_mode: budgetMode,
             budget: budget,
-            schedule_type: 'SCHEDULE_START_END',
-            schedule_start_time: scheduleStartTime,
-            schedule_end_time: scheduleEndTime,
+            schedule_type: 'SCHEDULE_FROM_NOW',  // Run continuously from start time
+            schedule_start_time: scheduleStartTime,  // Only start time, no end time
             bid_type: 'BID_TYPE_CUSTOM',
             bid: bidPrice,
             dayparting: getDaypartingData()
