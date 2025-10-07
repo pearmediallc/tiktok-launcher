@@ -857,15 +857,24 @@ function showToast(message, type = 'info') {
 
 // Toggle between pixel dropdown and manual input
 function togglePixelInput() {
-    const pixelMethod = document.querySelector('input[name="pixel-method"]:checked').value;
+    const pixelMethod = document.querySelector('input[name="pixel-method"]:checked')?.value;
     const dropdownContainer = document.getElementById('pixel-dropdown-container');
     const manualContainer = document.getElementById('pixel-manual-container');
+
+    console.log('Toggle pixel input - Method:', pixelMethod);
+
+    if (!dropdownContainer || !manualContainer) {
+        console.error('Pixel containers not found');
+        return;
+    }
 
     if (pixelMethod === 'manual') {
         dropdownContainer.style.display = 'none';
         manualContainer.style.display = 'block';
+        console.log('Showing manual input');
     } else {
         dropdownContainer.style.display = 'block';
         manualContainer.style.display = 'none';
+        console.log('Showing dropdown');
     }
 }

@@ -109,8 +109,8 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                     </div>
                     <div class="form-group" id="pixel-manual-container" style="display: none;">
                         <label>Pixel ID (Required)</label>
-                        <input type="text" id="pixel-manual-input" placeholder="Enter numeric Pixel ID (e.g., 1234567890)">
-                        <small>Get this from TikTok Ads Manager > Tools > Events > Web Events. Use the numeric pixel_id, not the pixel_code.</small>
+                        <input type="text" id="pixel-manual-input" placeholder="Enter numeric Pixel ID (e.g., 1234567890)" style="width: 100%; padding: 8px;">
+                        <small>For shared pixels from Business Center: Go to TikTok Ads Manager > Tools > Events > Web Events. Find your shared pixel and copy the numeric pixel_id (NOT the alphanumeric pixel_code).</small>
                     </div>
                 </div>
 
