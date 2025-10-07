@@ -121,7 +121,8 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                             <label>Budget Mode</label>
                             <select id="budget-mode">
                                 <option value="BUDGET_MODE_DAY">Daily Budget</option>
-                                <option value="BUDGET_MODE_TOTAL">Total Budget</option>
+                                <option value="BUDGET_MODE_DYNAMIC_DAILY_BUDGET">Dynamic Daily Budget (Recommended)</option>
+                                <option value="BUDGET_MODE_TOTAL">Total Budget (Lifetime)</option>
                             </select>
                         </div>
                         <div class="form-group">
