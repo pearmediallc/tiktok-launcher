@@ -275,18 +275,30 @@ try {
             }
 
             // --- Scheduling ---
-            if (!empty($data['schedule_start_time']) && !empty($data['schedule_end_time'])) {
+            if (!empty($data['schedule_type'])) {
+                $params['schedule_type'] = $data['schedule_type'];
+            }
+
+            // Add schedule_start_time if provided
+            if (!empty($data['schedule_start_time'])) {
                 // Validate format
-                if (!is_valid_datetime($data['schedule_start_time']) || !is_valid_datetime($data['schedule_end_time'])) {
+                if (!is_valid_datetime($data['schedule_start_time'])) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'Datetime must be YYYY-MM-DD HH:MM:SS (UTC)']);
+                    echo json_encode(['success' => false, 'message' => 'schedule_start_time must be YYYY-MM-DD HH:MM:SS (UTC)']);
                     exit;
                 }
-                $params['schedule_type'] = 'SCHEDULE_START_END';
-                $params['schedule_start_time'] = $data['schedule_start_time']; // "2025-10-04 00:00:00"
-                $params['schedule_end_time']   = $data['schedule_end_time'];   // "2025-10-10 23:59:59"
-            } else {
-                $params['schedule_type'] = 'SCHEDULE_FROM_NOW';
+                $params['schedule_start_time'] = $data['schedule_start_time'];
+            }
+
+            // Add schedule_end_time if provided
+            if (!empty($data['schedule_end_time'])) {
+                // Validate format
+                if (!is_valid_datetime($data['schedule_end_time'])) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'schedule_end_time must be YYYY-MM-DD HH:MM:SS (UTC)']);
+                    exit;
+                }
+                $params['schedule_end_time'] = $data['schedule_end_time'];
             }
 
             // --- Dayparting ---
