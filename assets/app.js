@@ -138,11 +138,18 @@ function prevStep() {
 // Campaign creation
 async function createCampaign() {
     const campaignName = document.getElementById('campaign-name').value.trim();
+    const campaignBudgetMode = document.getElementById('campaign-budget-mode').value;
+    const campaignBudget = parseFloat(document.getElementById('campaign-budget').value);
     const startDate = document.getElementById('campaign-start-date').value;
     const endDate = document.getElementById('campaign-end-date').value;
 
-    if (!campaignName || !startDate) {
-        showToast('Please enter campaign name and start date', 'error');
+    if (!campaignName || !campaignBudget || !startDate) {
+        showToast('Please enter campaign name, budget, and start date', 'error');
+        return;
+    }
+
+    if (campaignBudget < 20) {
+        showToast('Minimum campaign budget is $20', 'error');
         return;
     }
 
@@ -155,8 +162,13 @@ async function createCampaign() {
 
         const params = {
             campaign_name: campaignName,
+            budget_mode: campaignBudgetMode,
+            budget: campaignBudget,
             schedule_start_time: scheduleStartTime
         };
+
+        // Store budget mode for ad group to use
+        state.campaignBudgetMode = campaignBudgetMode;
 
         // Add end time if provided
         if (endDate) {
@@ -235,8 +247,8 @@ async function createAdGroup() {
             promotion_type: 'WEBSITE',  // Website conversion
             promotion_target_type: 'EXTERNAL_WEBSITE',  // Website Form
             pixel_id: pixelId,  // Data connection pixel
-            optimization_event: 'COMPLETE_REGISTRATION',  // Submit form event
-            optimization_goal: 'CONVERT',  // Conversion goal
+            optimization_event: 'FORM',  // Form submission event
+            optimization_goal: 'CONVERT',  // Conversion goal (matches WEB_CONVERSIONS)
             billing_event: 'OCPM',
 
             // ATTRIBUTION SETTINGS
@@ -253,15 +265,15 @@ async function createAdGroup() {
             age_groups: ['AGE_18_24', 'AGE_25_34', 'AGE_35_44', 'AGE_45_54', 'AGE_55_100'],
             gender: 'GENDER_UNLIMITED',  // All genders
 
-            // BUDGET AND SCHEDULE
-            budget_mode: budgetMode,  // BUDGET_MODE_DYNAMIC_DAILY_BUDGET or BUDGET_MODE_DAY
+            // BUDGET AND SCHEDULE (must match campaign budget_mode)
+            budget_mode: state.campaignBudgetMode || budgetMode,  // Use campaign's budget mode
             budget: budget,
             schedule_type: 'SCHEDULE_FROM_NOW',  // Set start time and run continuously
             schedule_start_time: scheduleStartTime,
 
             // BIDDING
-            bid_type: bidPrice > 0 ? 'BID_TYPE_CUSTOM' : 'BID_TYPE_NO_BID',
-            conversion_bid_price: bidPrice > 0 ? bidPrice : undefined,
+            bid_type: 'BID_TYPE_CUSTOM',  // Always use custom bidding for conversions
+            conversion_bid_price: bidPrice,  // Target CPA for conversions
 
             // PACING
             pacing: 'PACING_MODE_SMOOTH',  // Standard delivery

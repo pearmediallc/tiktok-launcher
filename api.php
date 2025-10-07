@@ -70,8 +70,10 @@ try {
             $params = [
                 'advertiser_id' => $advertiser_id,
                 'campaign_name' => $data['campaign_name'],
-                'objective_type' => 'LEAD_GENERATION',
-                'budget_mode' => 'BUDGET_MODE_INFINITE'
+                'objective_type' => 'WEB_CONVERSIONS',  // For website form conversions
+                'budget_mode' => $data['budget_mode'] ?? 'BUDGET_MODE_DAY',  // User selectable
+                'budget' => floatval($data['budget']),  // User provided
+                'operation_status' => 'ENABLE'  // Enable campaign immediately
             ];
 
             // Add schedule parameters if provided

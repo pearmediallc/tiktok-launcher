@@ -54,6 +54,24 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 </div>
 
                 <div class="form-section">
+                    <h3>Budget</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Budget Mode</label>
+                            <select id="campaign-budget-mode">
+                                <option value="BUDGET_MODE_DAY">Daily Budget</option>
+                                <option value="BUDGET_MODE_DYNAMIC_DAILY_BUDGET">Dynamic Daily Budget</option>
+                                <option value="BUDGET_MODE_TOTAL">Total Budget (Lifetime)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Budget Amount ($)</label>
+                            <input type="number" id="campaign-budget" placeholder="50" min="20" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
                     <h3>Schedule</h3>
                     <div class="form-row">
                         <div class="form-group">
@@ -68,7 +86,7 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 </div>
 
                 <div class="form-info">
-                    <p><strong>Objective:</strong> Lead Generation</p>
+                    <p><strong>Objective:</strong> Web Conversions (Form Submit)</p>
                     <p><strong>Type:</strong> Manual Campaign</p>
                 </div>
                 <button class="btn-primary" onclick="createCampaign()">Continue to Ad Group →</button>
