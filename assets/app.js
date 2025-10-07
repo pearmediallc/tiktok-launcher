@@ -232,7 +232,7 @@ async function createAdGroup() {
             adgroup_name: adGroupName,
 
             // OPTIMIZATION (Website Form - Submit form event)
-            promotion_type: 'APP',  // For Website option
+            promotion_type: 'WEBSITE',  // Website conversion
             promotion_target_type: 'EXTERNAL_WEBSITE',  // Website Form
             pixel_id: pixelId,  // Data connection pixel
             optimization_event: 'COMPLETE_REGISTRATION',  // Submit form event
