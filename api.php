@@ -219,7 +219,13 @@ try {
                 $params['lead_gen_form_id'] = $data['lead_gen_form_id'];
             }
             if (!empty($data['pixel_id'])) {
-                $params['pixel_id'] = $data['pixel_id'];
+                // Log pixel ID for debugging
+                error_log("AdGroup Creation - Pixel ID received: " . $data['pixel_id'] . " (type: " . gettype($data['pixel_id']) . ")");
+
+                // Ensure pixel_id is a string (TikTok expects string)
+                $params['pixel_id'] = strval($data['pixel_id']);
+
+                error_log("AdGroup Creation - Pixel ID after conversion: " . $params['pixel_id']);
             }
             if (!empty($data['promotion_target_type'])) {
                 $params['promotion_target_type'] = $data['promotion_target_type'];

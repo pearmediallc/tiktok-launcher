@@ -210,7 +210,8 @@ async function createAdGroup() {
     const adGroupName = document.getElementById('adgroup-name').value.trim();
 
     // Get pixel ID from either dropdown or manual input based on selection
-    const pixelMethod = document.querySelector('input[name="pixel-method"]:checked').value;
+    const pixelMethodRadio = document.querySelector('input[name="pixel-method"]:checked');
+    const pixelMethod = pixelMethodRadio ? pixelMethodRadio.value : 'dropdown';
     const pixelId = pixelMethod === 'manual'
         ? document.getElementById('pixel-manual-input').value.trim()
         : document.getElementById('lead-gen-form-id').value.trim();
@@ -220,8 +221,25 @@ async function createAdGroup() {
     const startDate = document.getElementById('start-date').value;
     const bidPrice = parseFloat(document.getElementById('bid-price').value);
 
+    console.log('=== AD GROUP CREATION DEBUG ===');
+    console.log('Pixel Method:', pixelMethod);
+    console.log('Pixel ID:', pixelId);
+    console.log('Pixel ID type:', typeof pixelId);
+    console.log('Pixel ID length:', pixelId ? pixelId.length : 0);
+    console.log('Dropdown value:', document.getElementById('lead-gen-form-id').value);
+    console.log('Manual input value:', document.getElementById('pixel-manual-input').value);
+    console.log('================================');
+
     if (!adGroupName || !pixelId || !budget || !startDate || !bidPrice) {
-        showToast('Please fill in all required fields', 'error');
+        showToast('Please fill in all required fields (including pixel ID)', 'error');
+        console.error('Missing fields - Pixel ID:', pixelId);
+        return;
+    }
+
+    // Validate pixel_id is numeric
+    if (!/^\d+$/.test(pixelId)) {
+        showToast('Pixel ID must be numeric (e.g., 1234567890)', 'error');
+        console.error('Invalid pixel ID format:', pixelId);
         return;
     }
 
@@ -247,7 +265,7 @@ async function createAdGroup() {
             promotion_type: 'WEBSITE',  // Website conversion
             promotion_target_type: 'EXTERNAL_WEBSITE',  // Website Form
             pixel_id: pixelId,  // Data connection pixel
-            optimization_event: 'FORM',  // Form submission event
+            optimization_event: 'FORM',  // Form submission event - EXACTLY as Postman
             optimization_goal: 'CONVERT',  // Conversion goal (matches WEB_CONVERSIONS)
             billing_event: 'OCPM',
 
@@ -282,14 +300,21 @@ async function createAdGroup() {
             ...getDaypartingData()
         };
 
+        console.log('Sending ad group params:', JSON.stringify(params, null, 2));
+
         const response = await apiRequest('create_adgroup', params);
+
+        console.log('Ad group API response:', response);
 
         if (response.success && response.data && response.data.adgroup_id) {
             state.adGroupId = response.data.adgroup_id;
             showToast('Ad group created successfully', 'success');
             nextStep();
         } else {
-            showToast(response.message || 'Failed to create ad group', 'error');
+            const errorMsg = response.message || 'Failed to create ad group';
+            console.error('Ad group creation failed:', errorMsg);
+            console.error('Full error response:', response);
+            showToast(errorMsg, 'error');
         }
     } catch (error) {
         showToast('Error creating ad group: ' + error.message, 'error');
