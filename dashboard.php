@@ -303,6 +303,23 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
 
         <!-- Toast Notification -->
         <div id="toast" class="toast"></div>
+
+        <!-- API Logs Panel -->
+        <div id="logs-panel" class="logs-panel">
+            <div class="logs-header">
+                <h3>📋 API Request Logs</h3>
+                <div class="logs-controls">
+                    <button class="btn-clear-logs" onclick="clearLogs()">Clear</button>
+                    <button class="btn-toggle-logs" onclick="toggleLogsPanel()">▼</button>
+                </div>
+            </div>
+            <div class="logs-content" id="logs-content">
+                <div class="log-entry log-info">
+                    <span class="log-time"><?php echo date('H:i:s'); ?></span>
+                    <span class="log-message">API Logger initialized - All requests will be logged here</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="assets/app.js"></script>

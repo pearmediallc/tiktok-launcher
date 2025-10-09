@@ -10,6 +10,52 @@ let state = {
     currentAdIndex: null
 };
 
+// API Logger Functions
+function addLog(type, message, details = null) {
+    const logsContent = document.getElementById('logs-content');
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-entry log-${type}`;
+
+    const now = new Date();
+    const time = now.toTimeString().split(' ')[0];
+
+    let typeLabel = '';
+    if (type === 'request' || type === 'response' || type === 'error') {
+        typeLabel = `<span class="log-type ${type}">${type.toUpperCase()}</span>`;
+    }
+
+    logEntry.innerHTML = `
+        <span class="log-time">${time}</span>
+        ${typeLabel}
+        <span class="log-message">${message}</span>
+    `;
+
+    if (details) {
+        const detailsDiv = document.createElement('div');
+        detailsDiv.className = 'log-details';
+        detailsDiv.innerHTML = `<pre>${JSON.stringify(details, null, 2)}</pre>`;
+        logEntry.appendChild(detailsDiv);
+    }
+
+    logsContent.appendChild(logEntry);
+    logsContent.scrollTop = logsContent.scrollHeight;
+}
+
+function clearLogs() {
+    const logsContent = document.getElementById('logs-content');
+    logsContent.innerHTML = `
+        <div class="log-entry log-info">
+            <span class="log-time">${new Date().toTimeString().split(' ')[0]}</span>
+            <span class="log-message">Logs cleared - Ready for new requests</span>
+        </div>
+    `;
+}
+
+function toggleLogsPanel() {
+    const logsPanel = document.getElementById('logs-panel');
+    logsPanel.classList.toggle('collapsed');
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     initializeDayparting();
@@ -873,13 +919,31 @@ async function apiRequest(action, data = {}, method = 'POST') {
         options.body = JSON.stringify(data);
     }
 
-    const response = await fetch(url, options);
+    // Log the request
+    addLog('request', `${method} ${action}`, method === 'POST' ? data : null);
 
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+            addLog('error', `HTTP ${response.status} error for ${action}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const jsonResponse = await response.json();
+
+        // Log the response
+        if (jsonResponse.success === false) {
+            addLog('error', `API Error: ${action}`, jsonResponse);
+        } else {
+            addLog('response', `${action} completed`, jsonResponse);
+        }
+
+        return jsonResponse;
+    } catch (error) {
+        addLog('error', `Request failed: ${error.message}`, { action, error: error.message });
+        throw error;
     }
-
-    return await response.json();
 }
 
 // Logout

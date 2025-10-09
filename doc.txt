@@ -1,0 +1,193 @@
+messaging_app_type
+Conditional
+string
+Valid only when promotion_type is LEAD_GEN_CLICK_TO_SOCIAL_MEDIA_APP_MESSAGE.
+When optimization_goal is CONVERSATION, this field is required.
+When optimization_goal is CLICK, the default value for this field is IM_URL.
+
+The type of instant messaging app or customized URL to use in the Instant Messaging Ad Group.
+
+Enum values:
+MESSENGER: Messenger. You need to simultaneously specify a Facebook Page ID via messaging_app_account_id.
+WHATSAPP: WhatsApp. You need to simultaneously specify phone_region_code, phone_region_calling_code, and phone_number, which will be used to automatically populate the corresponding WhatsApp phone number.
+ZALO: Zalo. You need to simultaneously specify phone_region_code, phone_region_calling_code, and phone_number to automatically populate the corresponding Zalo phone number.
+LINE: Line. You need to simultaneously specify a LINE Business ID via messaging_app_account_id.
+IM_URL: Instant Messaging URL.
+
+To learn more about how to create TikTok Instant Messaging Ads, see Create a Lead Generation ad with optimization location as instant messaging apps.
+
+Note:
+
+When optimization_goal is CONVERSATION, you cannot set this field to ZALO, LINE, or IM_URL.
+Once set, this field cannot be updated.
+
+
+deep_funnel_optimization_status
+string
+Valid only when promotion_type is LEAD_GENERATION.
+
+The status of deep funnel optimization.
+Deep funnel optimization optimizes both your upper funnel events and deeper funnel events. You can select a secondary event alongside the primary optimization event, which can help improve campaign effectiveness.
+
+Enum values:
+ON: To enable deep funnel optimization.
+OFF: To disable deep funnel optimization.
+Default value: OFF.
+
+To learn about how to configure deep funnel optimization for Lead Generation ads, see Lead Generation ad with optimization location as Instant Form and Lead Generation ad with optimization location as Website.
+
+Note:
+
+Deep funnel optimization with CRM events is currently an allowlist-only feature. If you would like to access it, please contact your TikTok representative.
+Deep funnel optimization with Pixel or Offline events is generally available.
+
+
+search_result_enabled
+boolean
+Whether to include your ads in Search Ads, namely to show your ads to users when they search for your business on TikTok.
+
+If the advertising objective (objective_type) is one of the following objectives: APP_PROMOTION, WEB_CONVERSIONS , TRAFFIC, LEAD_GENERATION, and you specify placement_type as PLACEMENT_TYPE_AUTOMATIC, or specify placement_type as PLACEMENT_TYPE_NORMAL and include PLACEMENT_TIKTOK in placements, this field will be automatically set to true. In this case, you can either omit the field or set this field as true to enable Automatic Search Placement. Alternatively, you can set this field as false to disable Automatic Search Placement.
+If the advertising objective (objective_type) is WEB_CONVERSIONS, TRAFFIC, or LEAD_GENERATION with is_search_campaign as true, this field will be automatically set to false because the Search Ads Campaign is incompatible with the Automatic Search Placement. In this case, you cannot set this field as true.
+If the advertising objective (objective_type) is not one of the following objectives: APP_PROMOTION, WEB_CONVERSIONS , TRAFFIC, LEAD_GENERATION or if you specify placement_type as PLACEMENT_TYPE_NORMAL and do not include PLACEMENT_TIKTOK in placements, this field will be automatically set to false. In this case, you cannot set this field as true.
+
+
+share_disabled
+boolean
+Whether to disable sharing of ads in this ad group to third-party platforms.
+
+Default value: false.
+
+The value trueis valid when the conditions below are all met:
+objective_type at the campaign level is set as one of the following objectives: APP_PROMOTION, WEB_CONVERSIONS, REACH, TRAFFIC, VIDEO_VIEWS, ENGAGEMENT, LEAD_GENERATION.
+Placement:
+placement_type= PLACEMENT_TYPE_AUTOMATIC or
+placement_type= PLACEMENT_TYPE_NORMAL, and placements = PLACEMENT_TIKTOK
+
+
+purchase_intention_keyword_ids
+string[]
+IDs of purchase intention categories that you want to use to target audiences with an interest in purchases related to a content category.
+
+To search for or list purchase intention category IDs, use /targeting/search/.
+
+Note:
+
+Do not pass in purchase_intention_keyword_ids and interest_keyword_ids at the same time. Otherwise, keyword conflict will occur.
+purchase_intention_keyword_ids only supports Auction ads with theobjective_type as APP_PROMOTION,WEB_CONVERSIONS，LEAD_GENERATION, TRAFFIC, or PRODUCT_SALES with product_source as CATALOG, and the placement setting should include TikTok (PLACEMENT_TIKTOK) or Pangle (PLACEMENT_PANGLE).
+
+
+
+
+
+category_exclusion_ids
+string[]
+Valid only when the following conditions are met:
+At the campaign level:
+objective_type is REACH, VIDEO_VIEWS, ENGAGEMENT, RF_REACH, APP_PROMOTION,WEB_CONVERSIONS,TRAFFIC, or LEAD_GENERATION.
+At the ad group level:
+placements is set to ["PLACEMENT_TIKTOK"].
+brand_safety_type is set to STANDARD_INVENTORY or LIMITED_INVENTORY.
+Content exclusion category IDs.
+
+You can use /tool/content_exclusion/get/ to get a list of content category IDs (excluded_category_list) that can be excluded from being displayed next to your ads.
+
+
+
+
+budget_mode
+Required
+string
+Ad group budget mode.
+
+When Campaign Budget Optimization (CBO) is enabled, budget_mode at the ad group level will be ignored.
+
+When CBO is disabled, budget_mode at the ad group level supports the following enum values:
+BUDGET_MODE_TOTAL: Lifetime budget.
+BUDGET_MODE_DYNAMIC_DAILY_BUDGET: Dynamic daily budget. It is the average daily budget over a week. Daily costs will not exceed 125% of the average daily budget. Weekly costs will not exceed the average daily budget * 7.
+When objective_type is TRAFFIC, APP_PROMOTION, WEB_CONVERSIONS, LEAD_GENERATION, PRODUCT_SALES (Video Shopping Ads only), REACH, VIDEO_VIEWS, or ENGAGEMENT, and you want to set a non-lifetime budget, set this field to BUDGET_MODE_DYNAMIC_DAILY_BUDGET.
+Note: BUDGET_MODE_DYNAMIC_DAILY_BUDGET for campaign objectives REACH, VIDEO_VIEWS, and ENGAGEMENT is currently an allowlist-only feature. If you would like to access it, please contact your TikTok representative.
+
+BUDGET_MODE_DAY: Daily budget.
+When objective_type is REACH, VIDEO_VIEWS, or ENGAGEMENT, we recommend that you use dynamic daily budget (BUDGET_MODE_DYNAMIC_DAILY_BUDGET) instead of daily budget (BUDGET_MODE_DAY).
+
+To learn about how to set budget modes, see Budget.
+
+Note:
+
+If this field is set to BUDGET_MODE_DAY, then schedule_type can be either SCHEDULE_START_END or SCHEDULE_FROM_NOW.
+If this field is set to BUDGET_MODE_TOTAL, then schedule_type must be SCHEDULE_START_END, which requires an end date (schedule_end_time).
+
+
+
+
+optimization_goal
+Required
+string
+The measurable results you'd like to drive with your ads.
+
+For a complete list of enum values, see Enumeration - Optimization Goal.
+For enum values supported for CBO campaigns, see Campaign Budget Optimization-Supported optimization goals.
+
+For each optimization goal, you need to manually specify the corresponding billing_event simultaneously. To learn about the billing event associated with a specific optimization goal, see Corresponding billing event for an optimization goal.
+
+To use the optimization goal "Install with in-app event" on Pangle placement or Global App Bundle placement or both in an ad group, set optimization_goal to INSTALL, specify a valid secondary_optimization_event value, and only include PLACEMENT_PANGLE or PLACEMENT_GLOBAL_APP_BUNDLE or both in the placements value.
+
+Note:
+
+When promotion_type is LEAD_GEN_CLICK_TO_TT_DIRECT_MESSAGE, LEAD_GEN_CLICK_TO_SOCIAL_MEDIA_APP_MESSAGE, or LEAD_GEN_CLICK_TO_CALL, the default value for this field will be CLICK.
+Starting November 30th, 2024, you will no longer be able to create or copy ad groups with the optimization goal "Install with in-app event" on TikTok placement or Automatic Placement. This change affects ad groups with the following configuration:
+At the campaign level: objective_type is APP_PROMOTION
+At the ad group level:
+optimization_goal is INSTALL and a valid secondary_optimization_event value is specified
+placement_type is PLACEMENT_TYPE_NORMAL with placements as ["PLACEMENT_TIKTOK"], or placement_type is PLACEMENT_TYPE_AUTOMATIC
+Existing "Install with in-app event" ad groups on TikTok placement will not be affected. Additionally, Pangle placement and Global App Bundle placement (where placement_type is PLACEMENT_TYPE_NORMAL and placements includes only PLACEMENT_PANGLE or PLACEMENT_GLOBAL_APP_BUNDLE or both) will not be impacted. Please be aware of this change and make appropriate adjustments to your integration if necessary.
+You can no longer use VIDEO_VIEW in the optimization_goal field, and when objective_type is VIDEO_VIEWS at the campaign level, we recommend that you use ENGAGED_VIEW or ENGAGED_VIEW_FIFTEEN (on allowlist) as your optimization goal.
+For new ad groups created under one CBO campaign, this field should be the same as the first ad group.
+
+
+
+message_event_set_id
+Conditional
+string
+Required when the following conditions are met:
+promotion_type is LEAD_GEN_CLICK_TO_SOCIAL_MEDIA_APP_MESSAGE.
+optimization_goal is CONVERSATION.
+The instant messaging app account in your ad group settings doesn't match any existing message event set.
+
+The ID of the message event set to use in the Instant Messaging Ad Group.
+
+If the instant messaging app account, either the Messenger account specified via messaging_app_account_id or the WhatsApp account populated from the specified phone_region_code, phone_region_calling_code, and phone_number, in your ad group settings matches an existing event set, this field will be ignored and automatically populated with the unique message event set associated with the instant messaging app account you choose.
+To confirm whether a unique message event set is associated with the instant messaging app account you choose, use /ctm/message_event_set/get/ and check the returned matched_event_set.
+If the instant messaging app account in your ad group settings doesn't match any existing message event set (matched_event_set returned from /ctm/message_event_set/get/ is empty), use /ctm/message_event_set/get/ to obtain the message event sets available for ad creation via the response parameter message_event_set_list.
+
+Note: Once set, this field cannot be updated.
+
+
+
+pixel_id
+Conditional
+string
+Required when optimization_goal is set to CONVERT or VALUE.
+Not supported when optimization_goal is not set to CONVERT or VALUE.
+
+Pixel ID.
+
+To obtain the list of Pixel IDs within your ad account, use /pixel/list/.
+
+
+
+custom_conversion_id
+string
+The ID of the Custom Conversion to use in the ad group.
+
+Valid only when the following conditions are all met:
+Either pixel_id or app_id is specified.
+A Custom Conversion has been configured for the pixel_id or app_id.
+The optimization_goal is set to CONVERT or IN_APP_EVENT.
+The parameter optimization_event is specified and matches the Standard Event associated with the Custom Conversion.
+The status of the Custom Conversion is Active or No recent activity.
+
+To obtain the list of Custom Conversions associated with a Pixel or an App, use /custom_conversion/list/.
+To confirm the eligibility of the Custom Conversion for ad group creation:
+Ensure the returned optimization_event matches the optimization_event specified during ad group creation.
+Ensure the activity_status is NO_RECENT_ACTIVITY or ACTIVE.
