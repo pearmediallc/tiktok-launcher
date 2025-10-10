@@ -660,6 +660,10 @@ h3 {
     max-height: 45px;
 }
 
+.logs-panel.collapsed .logs-content {
+    display: none;
+}
+
 .logs-header {
     display: flex;
     justify-content: space-between;

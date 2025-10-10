@@ -413,9 +413,11 @@ try {
             $params = [
                 'advertiser_id' => $advertiser_id,
                 'file_name' => $fileName,
-                'image_file' => new CURLFile($_FILES['image']['tmp_name'], $_FILES['image']['type'], $fileName),
+                'image_file' => new CURLFile($tmpPath, $_FILES['image']['type'], $fileName),
                 'image_signature' => $imageSignature
             ];
+
+            logToFile("Image CURLFile created - Path: " . $tmpPath . ", Type: " . $_FILES['image']['type'] . ", Name: " . $fileName);
 
             logToFile("Image Upload Params: " . json_encode(array_diff_key($params, ['image_file' => '']), JSON_PRETTY_PRINT));
 
@@ -466,12 +468,14 @@ try {
                 'advertiser_id' => $advertiser_id,
                 'file_name' => $fileName,
                 'upload_type' => 'UPLOAD_BY_FILE',
-                'video_file' => new CURLFile($_FILES['video']['tmp_name'], $_FILES['video']['type'], $fileName),
+                'video_file' => new CURLFile($tmpPath, $_FILES['video']['type'], $fileName),
                 'video_signature' => $videoSignature,
                 'flaw_detect' => 'true',
                 'auto_fix_enabled' => 'true',
                 'auto_bind_enabled' => 'true'
             ];
+
+            logToFile("Video CURLFile created - Path: " . $tmpPath . ", Type: " . $_FILES['video']['type'] . ", Name: " . $fileName);
 
             logToFile("Video Upload Params: " . json_encode(array_diff_key($params, ['video_file' => '']), JSON_PRETTY_PRINT));
 
