@@ -762,38 +762,38 @@ function confirmMediaSelection() {
     const placeholder = document.getElementById(`creative-placeholder-${adIndex}`);
     const placeholderContainer = placeholder.parentElement;
     
+    // Add has-media class for styling
+    placeholderContainer.classList.add('has-media');
+    
     if (media.type === 'image') {
         const imgUrl = media.url || media.image_url;
         if (imgUrl) {
-            preview.src = imgUrl;
-            preview.style.display = 'block';
-            preview.alt = `Image: ${media.file_name || media.image_id}`;
+            placeholderContainer.style.backgroundImage = `url(${imgUrl})`;
         }
-        placeholderContainer.style.backgroundImage = imgUrl ? `url(${imgUrl})` : 'none';
-        placeholderContainer.style.backgroundSize = 'cover';
-        placeholderContainer.style.backgroundPosition = 'center';
         placeholder.innerHTML = `
-            <div style="background: rgba(0,0,0,0.7); color: white; padding: 5px; border-radius: 4px;">
-                📷 Image: ${media.file_name || media.image_id}
+            <div class="media-selected-info">
+                <div class="media-type-badge">📷</div>
+                <div class="media-name">Image Selected</div>
+                <div class="media-id">ID: ${media.image_id}</div>
             </div>`;
     } else {
         // For video, show thumbnail or video icon
         const previewUrl = media.preview_url || media.cover_url;
         if (previewUrl) {
-            preview.src = previewUrl;
-            preview.style.display = 'block';
-            preview.alt = `Video: ${media.file_name || media.video_id}`;
             placeholderContainer.style.backgroundImage = `url(${previewUrl})`;
         } else {
-            preview.style.display = 'none';
-            placeholderContainer.style.backgroundImage = 'none';
+            placeholderContainer.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
         }
-        placeholderContainer.style.backgroundSize = 'cover';
-        placeholderContainer.style.backgroundPosition = 'center';
+        
+        const fileName = media.file_name || 'Video';
+        const duration = media.duration ? `${Math.round(media.duration)}s` : '';
+        
         placeholder.innerHTML = `
-            <div style="background: rgba(0,0,0,0.7); color: white; padding: 5px; border-radius: 4px;">
-                🎥 Video: ${media.file_name || media.video_id}
-                ${media.duration ? ` (${Math.round(media.duration)}s)` : ''}
+            <div class="media-selected-info">
+                <div class="media-type-badge">🎥</div>
+                <div class="media-name">${fileName}</div>
+                ${duration ? `<div style="font-size: 11px; opacity: 0.9;">${duration}</div>` : ''}
+                <div class="media-id">ID: ${media.video_id}</div>
             </div>`;
     }
 
@@ -955,13 +955,30 @@ function populateIdentitiesForAd(adIndex) {
             }
             select.appendChild(option);
         });
+        
+        // Select first identity by default if available
+        if (state.identities.length > 0 && select.options.length > 1) {
+            select.selectedIndex = 1;
+        }
     } else {
-        // Add a message if no identities found
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = 'No custom identities found - Create one in TikTok Ads Manager';
-        option.disabled = true;
-        select.appendChild(option);
+        // Add helpful messages for no identities
+        const option1 = document.createElement('option');
+        option1.value = '';
+        option1.textContent = '⚠️ No identities found';
+        option1.disabled = true;
+        select.appendChild(option1);
+        
+        const option2 = document.createElement('option');
+        option2.value = '';
+        option2.textContent = '→ Create one in TikTok Ads Manager';
+        option2.disabled = true;
+        select.appendChild(option2);
+        
+        const option3 = document.createElement('option');
+        option3.value = '';
+        option3.textContent = '→ Or link a TikTok account';
+        option3.disabled = true;
+        select.appendChild(option3);
     }
 }
 

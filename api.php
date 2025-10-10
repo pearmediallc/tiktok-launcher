@@ -641,42 +641,75 @@ try {
             
             logToFile("Get Identities - Advertiser ID: " . $advertiser_id);
             
+            // Try to get both TT_USER and CUSTOMIZED_USER identities
+            $allIdentities = [];
+            
+            // First get TT_USER identities (TikTok accounts)
             $params = [
                 'advertiser_id' => $advertiser_id,
+                'identity_type' => 'TT_USER',
                 'page' => 1,
                 'page_size' => 100
             ];
             
             $response = $identity->getSelf($params);
-            
-            logToFile("Get Identities Response: " . json_encode($response, JSON_PRETTY_PRINT));
+            logToFile("Get TT_USER Identities Response: " . json_encode($response, JSON_PRETTY_PRINT));
             
             // Format the identities properly for frontend - check both list and identity_list
             $identityList = $response->data->identity_list ?? $response->data->list ?? null;
             
             if (empty($response->code) && $identityList) {
-                $identities = [];
                 foreach ($identityList as $id) {
-                    $identities[] = [
+                    $allIdentities[] = [
                         'identity_id' => $id->identity_id,
-                        'identity_name' => $id->identity_name ?? $id->display_name,
-                        'display_name' => $id->display_name ?? $id->identity_name,
+                        'identity_name' => $id->identity_name ?? $id->display_name ?? 'TikTok User',
+                        'display_name' => $id->display_name ?? $id->identity_name ?? 'TikTok User',
+                        'identity_type' => $id->identity_type ?? 'TT_USER'
+                    ];
+                }
+            }
+            
+            // Also try to get CUSTOMIZED_USER identities
+            $params['identity_type'] = 'CUSTOMIZED_USER';
+            $response = $identity->getSelf($params);
+            logToFile("Get CUSTOMIZED_USER Identities Response: " . json_encode($response, JSON_PRETTY_PRINT));
+            
+            $identityList = $response->data->identity_list ?? $response->data->list ?? null;
+            if (empty($response->code) && $identityList) {
+                foreach ($identityList as $id) {
+                    $allIdentities[] = [
+                        'identity_id' => $id->identity_id,
+                        'identity_name' => $id->identity_name ?? $id->display_name ?? 'Custom User',
+                        'display_name' => $id->display_name ?? $id->identity_name ?? 'Custom User',
                         'identity_type' => $id->identity_type ?? 'CUSTOMIZED_USER'
                     ];
                 }
-                
-                echo json_encode([
-                    'success' => true,
-                    'data' => ['list' => $identities]
-                ]);
-            } else {
-                // Fallback: return empty list if API fails
-                echo json_encode([
-                    'success' => true,
-                    'data' => ['list' => []],
-                    'message' => 'No custom identities found'
-                ]);
             }
+            
+            // If still no identities, try without identity_type filter
+            if (empty($allIdentities)) {
+                unset($params['identity_type']);
+                $response = $identity->getSelf($params);
+                logToFile("Get ALL Identities Response: " . json_encode($response, JSON_PRETTY_PRINT));
+                
+                $identityList = $response->data->identity_list ?? $response->data->list ?? null;
+                if (empty($response->code) && $identityList) {
+                    foreach ($identityList as $id) {
+                        $allIdentities[] = [
+                            'identity_id' => $id->identity_id,
+                            'identity_name' => $id->identity_name ?? $id->display_name ?? 'Identity',
+                            'display_name' => $id->display_name ?? $id->identity_name ?? 'Identity',
+                            'identity_type' => $id->identity_type ?? 'UNKNOWN'
+                        ];
+                    }
+                }
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'data' => ['list' => $allIdentities],
+                'message' => empty($allIdentities) ? 'No identities found - Create one in TikTok Ads Manager' : null
+            ]);
             break;
 
         case 'get_pixels':
