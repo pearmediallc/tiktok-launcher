@@ -389,16 +389,31 @@ try {
                 throw new Exception('No image file provided');
             }
 
-            $response = $file->uploadImage([
+            $fileName = $_FILES['image']['name'];
+            $imageSignature = md5_file($_FILES['image']['tmp_name']);
+
+            logToFile("Image Upload - File: " . $fileName);
+            logToFile("Image Upload - Advertiser ID: " . $advertiser_id);
+            logToFile("Image Upload - Signature: " . $imageSignature);
+
+            $params = [
                 'advertiser_id' => $advertiser_id,
-                'image_file' => new CURLFile($_FILES['image']['tmp_name'], $_FILES['image']['type'], $_FILES['image']['name']),
-                'upload_type' => 'UPLOAD_BY_FILE'
-            ]);
+                'file_name' => $fileName,
+                'image_file' => new CURLFile($_FILES['image']['tmp_name'], $_FILES['image']['type'], $fileName),
+                'image_signature' => $imageSignature
+            ];
+
+            logToFile("Image Upload Params: " . json_encode(array_diff_key($params, ['image_file' => '']), JSON_PRETTY_PRINT));
+
+            $response = $file->uploadImage($params);
+
+            logToFile("Image Upload Response: " . json_encode($response, JSON_PRETTY_PRINT));
 
             echo json_encode([
                 'success' => empty($response->code),
                 'data' => $response->data ?? null,
-                'message' => $response->message ?? 'Image uploaded successfully'
+                'message' => $response->message ?? 'Image uploaded successfully',
+                'code' => $response->code ?? null
             ]);
             break;
 
@@ -409,16 +424,32 @@ try {
                 throw new Exception('No video file provided');
             }
 
-            $response = $file->uploadVideo([
+            $fileName = $_FILES['video']['name'];
+            $videoSignature = md5_file($_FILES['video']['tmp_name']);
+
+            logToFile("Video Upload - File: " . $fileName);
+            logToFile("Video Upload - Advertiser ID: " . $advertiser_id);
+            logToFile("Video Upload - Signature: " . $videoSignature);
+
+            $params = [
                 'advertiser_id' => $advertiser_id,
-                'video_file' => new CURLFile($_FILES['video']['tmp_name'], $_FILES['video']['type'], $_FILES['video']['name']),
-                'upload_type' => 'UPLOAD_BY_FILE'
-            ]);
+                'file_name' => $fileName,
+                'upload_type' => 'UPLOAD_BY_FILE',
+                'video_file' => new CURLFile($_FILES['video']['tmp_name'], $_FILES['video']['type'], $fileName),
+                'video_signature' => $videoSignature
+            ];
+
+            logToFile("Video Upload Params: " . json_encode(array_diff_key($params, ['video_file' => '']), JSON_PRETTY_PRINT));
+
+            $response = $file->uploadVideo($params);
+
+            logToFile("Video Upload Response: " . json_encode($response, JSON_PRETTY_PRINT));
 
             echo json_encode([
                 'success' => empty($response->code),
                 'data' => $response->data ?? null,
-                'message' => $response->message ?? 'Video uploaded successfully'
+                'message' => $response->message ?? 'Video uploaded successfully',
+                'code' => $response->code ?? null
             ]);
             break;
 
