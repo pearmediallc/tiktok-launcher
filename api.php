@@ -405,16 +405,19 @@ try {
             
             // If upload successful, store the image ID for later retrieval
             if ($success && isset($response->data->image_id)) {
-                // Store image ID in session for this session's library
-                if (!isset($_SESSION['uploaded_images'])) {
-                    $_SESSION['uploaded_images'] = [];
-                }
-                $_SESSION['uploaded_images'][] = [
+                // Store in persistent storage
+                $storageFile = __DIR__ . '/media_storage.json';
+                $storage = json_decode(file_get_contents($storageFile), true) ?? ['images' => [], 'videos' => []];
+                
+                $storage['images'][] = [
                     'image_id' => $response->data->image_id,
                     'file_name' => $fileName,
                     'upload_time' => time(),
-                    'url' => $response->data->url ?? null
+                    'url' => $response->data->url ?? null,
+                    'advertiser_id' => $advertiser_id
                 ];
+                
+                file_put_contents($storageFile, json_encode($storage, JSON_PRETTY_PRINT));
                 
                 logToFile("Image uploaded successfully with ID: " . $response->data->image_id);
             }
@@ -517,15 +520,18 @@ try {
             
             // If upload successful, store the video ID for later retrieval
             if ($success && isset($response->data->video_id)) {
-                // Store video ID in session for this session's library
-                if (!isset($_SESSION['uploaded_videos'])) {
-                    $_SESSION['uploaded_videos'] = [];
-                }
-                $_SESSION['uploaded_videos'][] = [
+                // Store in persistent storage
+                $storageFile = __DIR__ . '/media_storage.json';
+                $storage = json_decode(file_get_contents($storageFile), true) ?? ['images' => [], 'videos' => []];
+                
+                $storage['videos'][] = [
                     'video_id' => $response->data->video_id,
                     'file_name' => $fileName,
-                    'upload_time' => time()
+                    'upload_time' => time(),
+                    'advertiser_id' => $advertiser_id
                 ];
+                
+                file_put_contents($storageFile, json_encode($storage, JSON_PRETTY_PRINT));
                 
                 logToFile("Video uploaded successfully with ID: " . $response->data->video_id);
             }
@@ -695,10 +701,18 @@ try {
             
             $images = [];
             
-            // First, check if we have uploaded images in session
-            if (isset($_SESSION['uploaded_images']) && !empty($_SESSION['uploaded_images'])) {
+            // Read from persistent storage
+            $storageFile = __DIR__ . '/media_storage.json';
+            $storage = json_decode(file_get_contents($storageFile), true) ?? ['images' => [], 'videos' => []];
+            
+            // Filter images for current advertiser
+            $advertiserImages = array_filter($storage['images'] ?? [], function($img) use ($advertiser_id) {
+                return $img['advertiser_id'] === $advertiser_id;
+            });
+            
+            if (!empty($advertiserImages)) {
                 // Get image details from TikTok for each stored ID
-                $image_ids = array_column($_SESSION['uploaded_images'], 'image_id');
+                $image_ids = array_column($advertiserImages, 'image_id');
                 
                 if (!empty($image_ids)) {
                     try {
@@ -712,21 +726,40 @@ try {
                         
                         if (empty($response->code) && isset($response->data->list)) {
                             foreach ($response->data->list as $image) {
+                                // Find original filename from storage
+                                $originalData = null;
+                                foreach ($advertiserImages as $stored) {
+                                    if ($stored['image_id'] == $image->image_id) {
+                                        $originalData = $stored;
+                                        break;
+                                    }
+                                }
+                                
                                 $images[] = [
                                     'image_id' => $image->image_id,
-                                    'url' => $image->image_url ?? $image->url ?? '',
-                                    'file_name' => $image->file_name ?? $image->material_name ?? 'Image',
+                                    'url' => $image->image_url ?? $image->url ?? $originalData['url'] ?? '',
+                                    'file_name' => $originalData['file_name'] ?? $image->file_name ?? $image->material_name ?? 'Image',
                                     'width' => $image->width ?? null,
                                     'height' => $image->height ?? null,
                                     'format' => $image->format ?? null,
                                     'type' => 'image'
                                 ];
                             }
+                        } else {
+                            // If TikTok API fails, use stored data
+                            foreach ($advertiserImages as $img) {
+                                $images[] = [
+                                    'image_id' => $img['image_id'],
+                                    'url' => $img['url'] ?? '',
+                                    'file_name' => $img['file_name'] ?? 'Image',
+                                    'type' => 'image'
+                                ];
+                            }
                         }
                     } catch (Exception $e) {
                         logToFile("Error fetching image info: " . $e->getMessage());
-                        // Fall back to session data
-                        foreach ($_SESSION['uploaded_images'] as $img) {
+                        // Fall back to stored data
+                        foreach ($advertiserImages as $img) {
                             $images[] = [
                                 'image_id' => $img['image_id'],
                                 'url' => $img['url'] ?? '',
@@ -734,16 +767,6 @@ try {
                                 'type' => 'image'
                             ];
                         }
-                    }
-                } else {
-                    // Use session data if no IDs
-                    foreach ($_SESSION['uploaded_images'] as $img) {
-                        $images[] = [
-                            'image_id' => $img['image_id'],
-                            'url' => $img['url'] ?? '',
-                            'file_name' => $img['file_name'] ?? 'Image',
-                            'type' => 'image'
-                        ];
                     }
                 }
             }
@@ -761,10 +784,18 @@ try {
             
             $videos = [];
             
-            // First, check if we have uploaded videos in session
-            if (isset($_SESSION['uploaded_videos']) && !empty($_SESSION['uploaded_videos'])) {
+            // Read from persistent storage
+            $storageFile = __DIR__ . '/media_storage.json';
+            $storage = json_decode(file_get_contents($storageFile), true) ?? ['images' => [], 'videos' => []];
+            
+            // Filter videos for current advertiser
+            $advertiserVideos = array_filter($storage['videos'] ?? [], function($vid) use ($advertiser_id) {
+                return $vid['advertiser_id'] === $advertiser_id;
+            });
+            
+            if (!empty($advertiserVideos)) {
                 // Get video details from TikTok for each stored ID
-                $video_ids = array_column($_SESSION['uploaded_videos'], 'video_id');
+                $video_ids = array_column($advertiserVideos, 'video_id');
                 
                 if (!empty($video_ids)) {
                     try {
@@ -778,37 +809,46 @@ try {
                         
                         if (empty($response->code) && isset($response->data->list)) {
                             foreach ($response->data->list as $video) {
+                                // Find original filename from storage
+                                $originalData = null;
+                                foreach ($advertiserVideos as $stored) {
+                                    if ($stored['video_id'] == $video->video_id) {
+                                        $originalData = $stored;
+                                        break;
+                                    }
+                                }
+                                
                                 $videos[] = [
                                     'video_id' => $video->video_id,
                                     'url' => $video->video_url ?? $video->preview_url ?? '',
                                     'preview_url' => $video->preview_url ?? $video->cover_url ?? '',
-                                    'file_name' => $video->file_name ?? $video->video_name ?? 'Video',
+                                    'file_name' => $originalData['file_name'] ?? $video->file_name ?? $video->video_name ?? 'Video',
                                     'duration' => $video->duration ?? null,
                                     'width' => $video->width ?? null,
                                     'height' => $video->height ?? null,
                                     'type' => 'video'
                                 ];
                             }
+                        } else {
+                            // If TikTok API fails, use stored data
+                            foreach ($advertiserVideos as $vid) {
+                                $videos[] = [
+                                    'video_id' => $vid['video_id'],
+                                    'file_name' => $vid['file_name'] ?? 'Video',
+                                    'type' => 'video'
+                                ];
+                            }
                         }
                     } catch (Exception $e) {
                         logToFile("Error fetching video info: " . $e->getMessage());
-                        // Fall back to session data
-                        foreach ($_SESSION['uploaded_videos'] as $vid) {
+                        // Fall back to stored data
+                        foreach ($advertiserVideos as $vid) {
                             $videos[] = [
                                 'video_id' => $vid['video_id'],
                                 'file_name' => $vid['file_name'] ?? 'Video',
                                 'type' => 'video'
                             ];
                         }
-                    }
-                } else {
-                    // Use session data if no IDs
-                    foreach ($_SESSION['uploaded_videos'] as $vid) {
-                        $videos[] = [
-                            'video_id' => $vid['video_id'],
-                            'file_name' => $vid['file_name'] ?? 'Video',
-                            'type' => 'video'
-                        ];
                     }
                 }
             }
@@ -967,6 +1007,43 @@ try {
             ]);
             break;
 
+        case 'add_existing_media':
+            // Allow manual addition of existing TikTok media IDs
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            $storageFile = __DIR__ . '/media_storage.json';
+            $storage = json_decode(file_get_contents($storageFile), true) ?? ['images' => [], 'videos' => []];
+            
+            if (!empty($data['video_ids'])) {
+                foreach ($data['video_ids'] as $video_id) {
+                    $storage['videos'][] = [
+                        'video_id' => $video_id,
+                        'file_name' => $data['file_names'][$video_id] ?? 'Video',
+                        'upload_time' => time(),
+                        'advertiser_id' => $advertiser_id
+                    ];
+                }
+            }
+            
+            if (!empty($data['image_ids'])) {
+                foreach ($data['image_ids'] as $image_id) {
+                    $storage['images'][] = [
+                        'image_id' => $image_id,
+                        'file_name' => $data['file_names'][$image_id] ?? 'Image',
+                        'upload_time' => time(),
+                        'advertiser_id' => $advertiser_id
+                    ];
+                }
+            }
+            
+            file_put_contents($storageFile, json_encode($storage, JSON_PRETTY_PRINT));
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Media IDs added successfully'
+            ]);
+            break;
+            
         case 'logout':
             session_destroy();
             echo json_encode(['success' => true]);
