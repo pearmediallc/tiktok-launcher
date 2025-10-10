@@ -624,6 +624,26 @@ async function refreshMediaLibrary() {
     await loadMediaLibrary();
 }
 
+// Sync with TikTok library
+async function syncTikTokLibrary() {
+    try {
+        showToast('Syncing with TikTok library...', 'info');
+        
+        const response = await apiRequest('sync_tiktok_library', {}, 'POST');
+        
+        if (response.success) {
+            showToast(response.message + ` (Total: ${response.total_videos} videos)`, 'success');
+            // Reload the media library to show new items
+            await loadMediaLibrary();
+        } else {
+            showToast('Failed to sync with TikTok', 'error');
+        }
+    } catch (error) {
+        console.error('Error syncing with TikTok:', error);
+        showToast('Error syncing with TikTok library', 'error');
+    }
+}
+
 // Render media grid
 function renderMediaGrid() {
     const grid = document.getElementById('media-grid');

@@ -807,7 +807,19 @@ try {
                         $response = $file->getVideoInfo($params);
                         logToFile("Get Video Info Response: " . json_encode($response, JSON_PRETTY_PRINT));
                         
-                        if (empty($response->code) && isset($response->data->list)) {
+                        // Check if we got valid response or permission errors
+                        if (!empty($response->code) && $response->code == 40001) {
+                            // Permission error - just use stored data
+                            logToFile("Permission error for videos, using stored data");
+                            foreach ($advertiserVideos as $vid) {
+                                $videos[] = [
+                                    'video_id' => $vid['video_id'],
+                                    'file_name' => $vid['file_name'] ?? 'Video',
+                                    'duration' => $vid['duration'] ?? null,
+                                    'type' => 'video'
+                                ];
+                            }
+                        } elseif (empty($response->code) && isset($response->data->list)) {
                             foreach ($response->data->list as $video) {
                                 // Find original filename from storage
                                 $originalData = null;
@@ -1007,6 +1019,72 @@ try {
             ]);
             break;
 
+        case 'sync_tiktok_library':
+            // Sync with TikTok's actual media library
+            logToFile("Syncing TikTok media library for advertiser: " . $advertiser_id);
+            
+            $storageFile = __DIR__ . '/media_storage.json';
+            $storage = json_decode(file_get_contents($storageFile), true) ?? ['images' => [], 'videos' => []];
+            
+            // Search for videos using TikTok's search endpoint
+            $url = 'https://business-api.tiktok.com/open_api/v1.3/file/video/ad/search/';
+            $params = http_build_query([
+                'advertiser_id' => $advertiser_id,
+                'page' => 1,
+                'page_size' => 100
+            ]);
+            
+            $ch = curl_init($url . '?' . $params);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER => [
+                    'Access-Token: ' . $config['access_token']
+                ]
+            ]);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            $result = json_decode($response, true);
+            $videoCount = 0;
+            
+            if ($httpCode == 200 && isset($result['data']['list'])) {
+                foreach ($result['data']['list'] as $video) {
+                    // Check if already exists
+                    $exists = false;
+                    foreach ($storage['videos'] as $stored) {
+                        if ($stored['video_id'] === $video['video_id'] && $stored['advertiser_id'] === $advertiser_id) {
+                            $exists = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!$exists) {
+                        $storage['videos'][] = [
+                            'video_id' => $video['video_id'],
+                            'file_name' => $video['video_name'] ?? $video['file_name'] ?? 'Video',
+                            'duration' => $video['duration'] ?? null,
+                            'size' => $video['size'] ?? null,
+                            'upload_time' => time(),
+                            'advertiser_id' => $advertiser_id
+                        ];
+                        $videoCount++;
+                    }
+                }
+            }
+            
+            file_put_contents($storageFile, json_encode($storage, JSON_PRETTY_PRINT));
+            
+            echo json_encode([
+                'success' => true,
+                'message' => "Synced $videoCount new videos from TikTok",
+                'total_videos' => count(array_filter($storage['videos'], function($v) use ($advertiser_id) {
+                    return $v['advertiser_id'] === $advertiser_id;
+                }))
+            ]);
+            break;
+            
         case 'add_existing_media':
             // Allow manual addition of existing TikTok media IDs
             $data = json_decode(file_get_contents('php://input'), true);
