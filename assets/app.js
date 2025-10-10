@@ -553,12 +553,31 @@ function closeMediaModal() {
     state.selectedMedia = null;
 }
 
-function switchMediaTab(tab) {
+function switchMediaTab(tab, evt) {
+    // Get event from parameter
+    const clickEvent = evt;
+    
+    // Remove active class from all tabs and buttons
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.media-tab').forEach(tabContent => tabContent.classList.remove('active'));
 
-    event.target.classList.add('active');
-    document.getElementById(`media-${tab}-tab`).classList.add('active');
+    // Add active class to clicked button (if event exists) and corresponding tab
+    if (clickEvent && clickEvent.target) {
+        clickEvent.target.classList.add('active');
+    } else {
+        // If no event, find the button by text content
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            if (btn.textContent.toLowerCase().includes(tab.toLowerCase())) {
+                btn.classList.add('active');
+            }
+        });
+    }
+    
+    // Show the correct tab content
+    const tabElement = document.getElementById(`media-${tab}-tab`);
+    if (tabElement) {
+        tabElement.classList.add('active');
+    }
 }
 
 // Load media library
@@ -609,10 +628,27 @@ function renderMediaGrid() {
         item.onclick = () => selectMedia(media);
 
         if (media.type === 'image') {
-            item.innerHTML = `<img src="${media.image_url || media.url}" alt="Image">`;
+            // For images, use the URL provided
+            const imgUrl = media.image_url || media.url;
+            if (imgUrl) {
+                item.innerHTML = `<img src="${imgUrl}" alt="${media.file_name || 'Image'}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect width="100" height="100" fill="%23ddd"/%3E%3Ctext x="50%%" y="50%%" text-anchor="middle" dy=".3em" fill="%23999"%3EImage%3C/text%3E%3C/svg%3E'">`;
+            } else {
+                item.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Image</div>';
+            }
         } else {
-            item.innerHTML = `<video src="${media.video_url || media.url}" muted></video>`;
+            // For videos, use preview URL or video URL
+            const videoUrl = media.preview_url || media.video_url || media.url;
+            if (videoUrl) {
+                // Use poster image if available, otherwise just show video
+                item.innerHTML = `<video src="${videoUrl}" poster="${media.preview_url || ''}" muted></video>`;
+            } else {
+                item.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Video</div>';
+            }
         }
+
+        // Add file name or ID as tooltip
+        const label = media.file_name || media.video_id || media.image_id || 'Media';
+        item.title = label;
 
         grid.appendChild(item);
     });
@@ -640,20 +676,37 @@ function confirmMediaSelection() {
     const adIndex = state.currentAdIndex;
     const media = state.selectedMedia;
 
-    // Update ad form
-    document.getElementById(`creative-id-${adIndex}`).value = media.id || media.video_id || media.image_id;
+    // Update ad form with the correct ID
+    const mediaId = media.video_id || media.image_id || media.id;
+    if (!mediaId) {
+        showToast('Invalid media selection - no ID found', 'error');
+        return;
+    }
+    
+    document.getElementById(`creative-id-${adIndex}`).value = mediaId;
     document.getElementById(`creative-type-${adIndex}`).value = media.type;
 
     // Show preview
     const preview = document.getElementById(`creative-preview-${adIndex}`);
-    preview.src = media.image_url || media.video_url || media.url;
-    preview.style.display = 'block';
-
-    // Hide placeholder
-    document.getElementById(`creative-placeholder-${adIndex}`).parentElement.style.display = 'none';
+    const placeholder = document.getElementById(`creative-placeholder-${adIndex}`);
+    
+    if (media.type === 'image') {
+        preview.src = media.image_url || media.url || '';
+        preview.style.display = 'block';
+        placeholder.textContent = `Image selected: ${media.file_name || mediaId}`;
+    } else {
+        // For video, show thumbnail or placeholder
+        if (media.preview_url) {
+            preview.src = media.preview_url;
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+        placeholder.textContent = `Video selected: ${media.file_name || mediaId}`;
+    }
 
     closeMediaModal();
-    showToast('Media selected', 'success');
+    showToast('Media selected successfully', 'success');
 }
 
 // Handle media upload
@@ -669,41 +722,59 @@ async function handleMediaUpload(event) {
         return;
     }
 
+    // Check file size
+    const maxSize = isVideo ? 500 * 1024 * 1024 : 10 * 1024 * 1024; // 500MB for video, 10MB for image
+    if (file.size > maxSize) {
+        showToast(`File too large. Maximum size is ${isVideo ? '500MB' : '10MB'}`, 'error');
+        return;
+    }
+
     const formData = new FormData();
     formData.append(isVideo ? 'video' : 'image', file);
 
     document.getElementById('upload-progress').style.display = 'block';
     document.getElementById('upload-area').style.display = 'none';
+    
+    // Add upload status message
+    const progressDiv = document.getElementById('upload-progress');
+    progressDiv.innerHTML = `<p>Uploading ${file.name}...</p><div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>`;
 
     try {
+        addLog('request', `Uploading ${isVideo ? 'video' : 'image'}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+        
         const response = await fetch(`api.php?action=${isVideo ? 'upload_video' : 'upload_image'}`, {
             method: 'POST',
             body: formData
         });
 
         const result = await response.json();
+        
+        addLog(result.success ? 'response' : 'error', `Upload ${result.success ? 'successful' : 'failed'}`, result);
 
         if (result.success) {
-            showToast('File uploaded successfully', 'success');
+            showToast(`${isVideo ? 'Video' : 'Image'} uploaded successfully`, 'success');
 
-            // Reload media library
+            // Reload media library to show the new upload
             await loadMediaLibrary();
 
-            // Switch back to library tab
-            switchMediaTab('library');
+            // Switch to library tab to show the uploaded file
+            document.querySelector('.tab-btn[onclick*="library"]').click();
 
             // Reset upload form
-            document.getElementById('upload-progress').style.display = 'none';
-            document.getElementById('upload-area').style.display = 'block';
             event.target.value = '';
         } else {
-            showToast(result.message || 'Upload failed', 'error');
+            const errorMsg = result.message || `Failed to upload ${isVideo ? 'video' : 'image'}`;
+            showToast(errorMsg, 'error');
+            console.error('Upload error:', result);
         }
     } catch (error) {
+        addLog('error', 'Upload failed', { error: error.message });
         showToast('Error uploading file: ' + error.message, 'error');
+        console.error('Upload exception:', error);
     } finally {
         document.getElementById('upload-progress').style.display = 'none';
         document.getElementById('upload-area').style.display = 'block';
+        progressDiv.innerHTML = '<p>Processing...</p>';
     }
 }
 
@@ -711,12 +782,24 @@ async function handleMediaUpload(event) {
 async function loadIdentities() {
     try {
         const response = await apiRequest('get_identities', {}, 'GET');
+        
+        console.log('Identities Response:', response);
 
         if (response.success && response.data && response.data.list) {
             state.identities = response.data.list;
+            console.log('Loaded identities:', state.identities);
+            
+            // Re-populate all existing ad forms with identities
+            state.ads.forEach(ad => {
+                populateIdentitiesForAd(ad.index);
+            });
+        } else {
+            console.warn('No identities found in response');
+            state.identities = [];
         }
     } catch (error) {
         console.error('Error loading identities:', error);
+        state.identities = [];
     }
 }
 
@@ -760,13 +843,34 @@ async function loadPixels() {
 // Populate identities dropdown for an ad
 function populateIdentitiesForAd(adIndex) {
     const select = document.getElementById(`identity-${adIndex}`);
+    
+    // Clear existing options except the first one
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
 
-    state.identities.forEach(identity => {
+    if (state.identities && state.identities.length > 0) {
+        state.identities.forEach(identity => {
+            const option = document.createElement('option');
+            option.value = identity.identity_id;
+            // Show both identity name and display name if different
+            const name = identity.identity_name || identity.display_name || 'Custom Identity';
+            const displayName = identity.display_name || '';
+            if (displayName && displayName !== name) {
+                option.textContent = `${name} (${displayName})`;
+            } else {
+                option.textContent = name;
+            }
+            select.appendChild(option);
+        });
+    } else {
+        // Add a message if no identities found
         const option = document.createElement('option');
-        option.value = identity.identity_id;
-        option.textContent = identity.identity_name || identity.display_name;
+        option.value = '';
+        option.textContent = 'No custom identities found - Create one in TikTok Ads Manager';
+        option.disabled = true;
         select.appendChild(option);
-    });
+    }
 }
 
 // Review ads before publishing

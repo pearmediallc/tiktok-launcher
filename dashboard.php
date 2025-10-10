@@ -262,8 +262,8 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                     <span class="modal-close" onclick="closeMediaModal()">&times;</span>
                 </div>
                 <div class="modal-tabs">
-                    <button class="tab-btn active" onclick="switchMediaTab('library')">Library</button>
-                    <button class="tab-btn" onclick="switchMediaTab('upload')">Upload New</button>
+                    <button class="tab-btn active" onclick="switchMediaTab('library', event)">Library</button>
+                    <button class="tab-btn" onclick="switchMediaTab('upload', event)">Upload New</button>
                 </div>
                 <div class="modal-body">
                     <div id="media-library-tab" class="media-tab active">

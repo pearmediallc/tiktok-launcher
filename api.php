@@ -396,9 +396,103 @@ try {
             logToFile("Image Upload Response: " . json_encode($response, JSON_PRETTY_PRINT));
 
             echo json_encode([
-                'success' => empty($response->code),
+                'success' => empty($response->code) || $response->code == 0,
                 'data' => $response->data ?? null,
                 'message' => $response->message ?? 'Image uploaded successfully',
+                'code' => $response->code ?? null
+            ]);
+            break;
+
+        case 'upload_video':
+            $file = new File($config);
+
+            logToFile("============ VIDEO UPLOAD REQUEST ============");
+            logToFile("Upload Video Request - FILES: " . json_encode($_FILES, JSON_PRETTY_PRINT));
+
+            if (!isset($_FILES['video'])) {
+                throw new Exception('No video file provided');
+            }
+
+            if ($_FILES['video']['error'] !== UPLOAD_ERR_OK) {
+                $uploadErrors = [
+                    UPLOAD_ERR_INI_SIZE => 'File exceeds upload_max_filesize',
+                    UPLOAD_ERR_FORM_SIZE => 'File exceeds MAX_FILE_SIZE',
+                    UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
+                    UPLOAD_ERR_NO_FILE => 'No file was uploaded',
+                    UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
+                    UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+                    UPLOAD_ERR_EXTENSION => 'PHP extension stopped upload'
+                ];
+                $errorMsg = $uploadErrors[$_FILES['video']['error']] ?? 'Unknown error: ' . $_FILES['video']['error'];
+                throw new Exception($errorMsg);
+            }
+
+            $fileName = $_FILES['video']['name'];
+            $tmpPath = $_FILES['video']['tmp_name'];
+            $fileSize = $_FILES['video']['size'];
+
+            if (!file_exists($tmpPath)) {
+                throw new Exception('Uploaded file not found at: ' . $tmpPath);
+            }
+
+            // Get file MIME type to properly set in CURLFile
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $tmpPath);
+            finfo_close($finfo);
+
+            $videoSignature = md5_file($tmpPath);
+
+            logToFile("Video Upload - File: " . $fileName);
+            logToFile("Video Upload - Size: " . $fileSize . " bytes");
+            logToFile("Video Upload - MIME Type: " . $mimeType);
+            logToFile("Video Upload - Advertiser ID: " . $advertiser_id);
+            logToFile("Video Upload - Signature: " . $videoSignature);
+
+            // Try SDK upload first
+            $params = [
+                'advertiser_id' => $advertiser_id,
+                'upload_type' => 'UPLOAD_BY_FILE',
+                'video_file' => new CURLFile($tmpPath, $mimeType, $fileName),
+                'video_signature' => $videoSignature
+            ];
+
+            $response = $file->uploadVideo($params);
+            
+            logToFile("Video Upload SDK Response: " . json_encode($response, JSON_PRETTY_PRINT));
+            
+            // If SDK fails, try direct cURL upload
+            if (!empty($response->code) && $response->code != 0) {
+                logToFile("SDK upload failed with code: " . $response->code . ", trying direct upload...");
+                
+                $url = 'https://business-api.tiktok.com/open_api/v1.3/file/video/ad/upload/';
+                
+                $ch = curl_init();
+                curl_setopt_array($ch, [
+                    CURLOPT_URL => $url,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => $params,
+                    CURLOPT_HTTPHEADER => [
+                        'Access-Token: ' . $config['access_token']
+                    ],
+                    CURLOPT_TIMEOUT => 300,
+                    CURLOPT_SSL_VERIFYPEER => true
+                ]);
+                
+                $directResponse = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                logToFile("Direct cURL HTTP Code: " . $httpCode);
+                logToFile("Direct cURL Response: " . $directResponse);
+                
+                $response = json_decode($directResponse);
+            }
+
+            echo json_encode([
+                'success' => empty($response->code) || $response->code == 0,
+                'data' => $response->data ?? null,
+                'message' => $response->message ?? 'Video uploaded successfully',
                 'code' => $response->code ?? null
             ]);
             break;
@@ -497,14 +591,43 @@ try {
 
         case 'get_identities':
             $identity = new Identity($config);
-            $response = $identity->getSelf([
-                'advertiser_id' => $advertiser_id
-            ]);
-
-            echo json_encode([
-                'success' => empty($response->code),
-                'data' => $response->data ?? null
-            ]);
+            
+            logToFile("Get Identities - Advertiser ID: " . $advertiser_id);
+            
+            $params = [
+                'advertiser_id' => $advertiser_id,
+                'page' => 1,
+                'page_size' => 100
+            ];
+            
+            $response = $identity->getSelf($params);
+            
+            logToFile("Get Identities Response: " . json_encode($response, JSON_PRETTY_PRINT));
+            
+            // Format the identities properly for frontend
+            if (empty($response->code) && isset($response->data->list)) {
+                $identities = [];
+                foreach ($response->data->list as $id) {
+                    $identities[] = [
+                        'identity_id' => $id->identity_id,
+                        'identity_name' => $id->identity_name ?? $id->display_name,
+                        'display_name' => $id->display_name ?? $id->identity_name,
+                        'identity_type' => $id->identity_type ?? 'CUSTOMIZED_USER'
+                    ];
+                }
+                
+                echo json_encode([
+                    'success' => true,
+                    'data' => ['list' => $identities]
+                ]);
+            } else {
+                // Fallback: return empty list if API fails
+                echo json_encode([
+                    'success' => true,
+                    'data' => ['list' => []],
+                    'message' => 'No custom identities found'
+                ]);
+            }
             break;
 
         case 'get_pixels':
@@ -524,23 +647,109 @@ try {
             break;
 
         case 'get_images':
+            $file = new File($config);
+            
             logToFile("Get Images - Advertiser ID: " . $advertiser_id);
-
-            echo json_encode([
-                'success' => true,
-                'data' => ['list' => []],
-                'message' => 'Image library - upload images to populate'
-            ]);
+            
+            try {
+                // Get image info from TikTok
+                $params = [
+                    'advertiser_id' => $advertiser_id,
+                    'page' => 1,
+                    'page_size' => 100
+                ];
+                
+                $response = $file->getImageInfo($params);
+                
+                logToFile("Get Images Response: " . json_encode($response, JSON_PRETTY_PRINT));
+                
+                if (empty($response->code) && isset($response->data->list)) {
+                    // Format the response for frontend
+                    $images = [];
+                    foreach ($response->data->list as $image) {
+                        $images[] = [
+                            'image_id' => $image->image_id,
+                            'url' => $image->url ?? $image->image_url,
+                            'width' => $image->width ?? null,
+                            'height' => $image->height ?? null,
+                            'format' => $image->format ?? null,
+                            'file_name' => $image->file_name ?? null
+                        ];
+                    }
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'data' => ['list' => $images]
+                    ]);
+                } else {
+                    echo json_encode([
+                        'success' => true,
+                        'data' => ['list' => []],
+                        'message' => 'No images found in library'
+                    ]);
+                }
+            } catch (Exception $e) {
+                logToFile("Error getting images: " . $e->getMessage());
+                echo json_encode([
+                    'success' => true,
+                    'data' => ['list' => []],
+                    'message' => 'Image library - upload images to populate'
+                ]);
+            }
             break;
 
         case 'get_videos':
+            $file = new File($config);
+            
             logToFile("Get Videos - Advertiser ID: " . $advertiser_id);
-
-            echo json_encode([
-                'success' => true,
-                'data' => ['list' => []],
-                'message' => 'Video library - upload videos to populate'
-            ]);
+            
+            try {
+                // Get video info from TikTok
+                $params = [
+                    'advertiser_id' => $advertiser_id,
+                    'page' => 1,
+                    'page_size' => 100
+                ];
+                
+                $response = $file->getVideoInfo($params);
+                
+                logToFile("Get Videos Response: " . json_encode($response, JSON_PRETTY_PRINT));
+                
+                if (empty($response->code) && isset($response->data->list)) {
+                    // Format the response for frontend
+                    $videos = [];
+                    foreach ($response->data->list as $video) {
+                        $videos[] = [
+                            'video_id' => $video->video_id,
+                            'url' => $video->url ?? $video->video_url ?? $video->preview_url,
+                            'duration' => $video->duration ?? null,
+                            'width' => $video->width ?? null,
+                            'height' => $video->height ?? null,
+                            'format' => $video->format ?? null,
+                            'file_name' => $video->file_name ?? null,
+                            'preview_url' => $video->preview_url ?? null
+                        ];
+                    }
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'data' => ['list' => $videos]
+                    ]);
+                } else {
+                    echo json_encode([
+                        'success' => true,
+                        'data' => ['list' => []],
+                        'message' => 'No videos found in library'
+                    ]);
+                }
+            } catch (Exception $e) {
+                logToFile("Error getting videos: " . $e->getMessage());
+                echo json_encode([
+                    'success' => true,
+                    'data' => ['list' => []],
+                    'message' => 'Video library - upload videos to populate'
+                ]);
+            }
             break;
 
         case 'get_campaigns':
