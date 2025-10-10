@@ -4,6 +4,13 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 ini_set('display_startup_errors', '0');
 
+// Increase PHP limits for video uploads
+ini_set('upload_max_filesize', '500M');
+ini_set('post_max_size', '510M');
+ini_set('memory_limit', '512M');
+ini_set('max_execution_time', '300');
+ini_set('max_input_time', '300');
+
 session_start();
 
 // Check authentication
@@ -70,13 +77,12 @@ try {
             $params = [
                 'advertiser_id' => $advertiser_id,
                 'campaign_name' => $data['campaign_name'],
-                'objective_type' => 'WEB_CONVERSIONS',  // For website form conversions
-                'budget_mode' => $data['budget_mode'] ?? 'BUDGET_MODE_DAY',  // User selectable
-                'budget' => floatval($data['budget']),  // User provided
-                'operation_status' => 'ENABLE'  // Enable campaign immediately
+                'objective_type' => 'WEB_CONVERSIONS',
+                'budget_mode' => $data['budget_mode'] ?? 'BUDGET_MODE_DAY',
+                'budget' => floatval($data['budget']),
+                'operation_status' => 'ENABLE'
             ];
 
-            // Add schedule parameters if provided
             if (!empty($data['schedule_start_time'])) {
                 $params['schedule_start_time'] = $data['schedule_start_time'];
             }
@@ -104,12 +110,10 @@ try {
             $adGroup = new AdGroup($config);
             $data = json_decode(file_get_contents('php://input'), true);
 
-            // Validate datetime format helper
             function is_valid_datetime($s) {
                 return preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $s);
             }
 
-            // Generate 168-char dayparting string
             function generate_time_series($startHour, $endHour, $days = [0,1,2,3,4,5,6]) {
                 $ts = '';
                 for ($d = 0; $d < 7; $d++) {
@@ -124,9 +128,6 @@ try {
                 return $ts;
             }
 
-            // ========== VALIDATION BASED ON TIKTOK API DOCS ==========
-
-            // 1. REQUIRED FIELDS
             $required_fields = ['campaign_id', 'adgroup_name', 'placement_type', 'placements',
                                 'promotion_type', 'optimization_goal', 'billing_event', 'budget_mode', 'budget'];
             foreach ($required_fields as $field) {
@@ -137,8 +138,6 @@ try {
                 }
             }
 
-            // 2. BUDGET MODE VALIDATION
-            // If budget_mode is BUDGET_MODE_TOTAL, schedule_end_time is REQUIRED
             if ($data['budget_mode'] === 'BUDGET_MODE_TOTAL') {
                 if (empty($data['schedule_end_time'])) {
                     http_response_code(400);
@@ -147,8 +146,6 @@ try {
                 }
             }
 
-            // 3. PIXEL_ID VALIDATION
-            // pixel_id is REQUIRED when optimization_goal is CONVERT or VALUE
             if (in_array($data['optimization_goal'], ['CONVERT', 'VALUE'])) {
                 if (empty($data['pixel_id'])) {
                     http_response_code(400);
@@ -157,8 +154,6 @@ try {
                 }
             }
 
-            // 4. MESSAGING APP VALIDATION
-            // For LEAD_GEN_CLICK_TO_SOCIAL_MEDIA_APP_MESSAGE promotion type
             if ($data['promotion_type'] === 'LEAD_GEN_CLICK_TO_SOCIAL_MEDIA_APP_MESSAGE') {
                 if (empty($data['messaging_app_type'])) {
                     http_response_code(400);
@@ -166,7 +161,6 @@ try {
                     exit;
                 }
 
-                // If optimization_goal is CONVERSATION, messaging_app_type cannot be ZALO, LINE, or IM_URL
                 if ($data['optimization_goal'] === 'CONVERSATION') {
                     if (in_array($data['messaging_app_type'], ['ZALO', 'LINE', 'IM_URL'])) {
                         http_response_code(400);
@@ -174,7 +168,6 @@ try {
                         exit;
                     }
 
-                    // message_event_set_id may be required
                     if (empty($data['message_event_set_id']) && empty($data['messaging_app_account_id'])) {
                         http_response_code(400);
                         echo json_encode(['success' => false, 'message' => 'message_event_set_id or messaging_app_account_id is required when optimization_goal is CONVERSATION']);
@@ -183,49 +176,32 @@ try {
                 }
             }
 
-            // Build params from frontend - all values configurable
             $params = [
                 'advertiser_id'      => $advertiser_id,
                 'campaign_id'        => $data['campaign_id'],
                 'adgroup_name'       => $data['adgroup_name'],
-
-                // OPTIMIZATION
                 'promotion_type'     => $data['promotion_type'],
                 'optimization_goal'  => $data['optimization_goal'],
                 'billing_event'      => $data['billing_event'],
-
-                // PLACEMENTS
                 'placement_type'     => $data['placement_type'],
                 'placements'         => $data['placements'],
-
-                // BUDGET AND SCHEDULE
                 'budget_mode'        => $data['budget_mode'],
                 'budget'             => floatval($data['budget']),
                 'bid_type'           => $data['bid_type'],
-
-                // TARGETING
                 'location_ids'       => $data['location_ids'] ?? ['6252001'],
             ];
 
-            // Add bid price if provided
             if (!empty($data['conversion_bid_price']) && floatval($data['conversion_bid_price']) > 0) {
                 $params['conversion_bid_price'] = floatval($data['conversion_bid_price']);
             } elseif (!empty($data['bid']) && floatval($data['bid']) > 0) {
                 $params['bid'] = floatval($data['bid']);
             }
 
-            // Add optional fields if present
             if (!empty($data['lead_gen_form_id'])) {
                 $params['lead_gen_form_id'] = $data['lead_gen_form_id'];
             }
             if (!empty($data['pixel_id'])) {
-                // Log pixel ID for debugging
-                error_log("AdGroup Creation - Pixel ID received: " . $data['pixel_id'] . " (type: " . gettype($data['pixel_id']) . ")");
-
-                // Ensure pixel_id is a string (TikTok expects string)
                 $params['pixel_id'] = strval($data['pixel_id']);
-
-                error_log("AdGroup Creation - Pixel ID after conversion: " . $params['pixel_id']);
             }
             if (!empty($data['promotion_target_type'])) {
                 $params['promotion_target_type'] = $data['promotion_target_type'];
@@ -236,7 +212,6 @@ try {
             if (!empty($data['custom_conversion_id'])) {
                 $params['custom_conversion_id'] = $data['custom_conversion_id'];
             }
-            // Attribution settings
             if (!empty($data['click_attribution_window'])) {
                 $params['click_attribution_window'] = $data['click_attribution_window'];
             }
@@ -246,14 +221,12 @@ try {
             if (!empty($data['attribution_event_count'])) {
                 $params['attribution_event_count'] = $data['attribution_event_count'];
             }
-            // Demographics
             if (!empty($data['age_groups'])) {
                 $params['age_groups'] = $data['age_groups'];
             }
             if (!empty($data['gender'])) {
                 $params['gender'] = $data['gender'];
             }
-            // Pacing
             if (!empty($data['pacing'])) {
                 $params['pacing'] = $data['pacing'];
             }
@@ -282,14 +255,11 @@ try {
                 $params['category_exclusion_ids'] = $data['category_exclusion_ids'];
             }
 
-            // --- Scheduling ---
             if (!empty($data['schedule_type'])) {
                 $params['schedule_type'] = $data['schedule_type'];
             }
 
-            // Add schedule_start_time if provided
             if (!empty($data['schedule_start_time'])) {
-                // Validate format
                 if (!is_valid_datetime($data['schedule_start_time'])) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'message' => 'schedule_start_time must be YYYY-MM-DD HH:MM:SS (UTC)']);
@@ -298,9 +268,7 @@ try {
                 $params['schedule_start_time'] = $data['schedule_start_time'];
             }
 
-            // Add schedule_end_time if provided
             if (!empty($data['schedule_end_time'])) {
-                // Validate format
                 if (!is_valid_datetime($data['schedule_end_time'])) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'message' => 'schedule_end_time must be YYYY-MM-DD HH:MM:SS (UTC)']);
@@ -309,7 +277,6 @@ try {
                 $params['schedule_end_time'] = $data['schedule_end_time'];
             }
 
-            // --- Dayparting ---
             if (!empty($data['dayparting'])) {
                 if (strlen($data['dayparting']) !== 168) {
                     http_response_code(400);
@@ -327,7 +294,6 @@ try {
                 );
             }
 
-            // --- Call TikTok API ---
             logToFile("TikTok API: POST /open_api/v1.3/adgroup/create/");
             logToFile("AdGroup Params: " . json_encode($params, JSON_PRETTY_PRINT));
 
@@ -344,6 +310,7 @@ try {
                 'code'    => $response->code ?? null
             ]);
             break;
+
         case 'create_ad':
             $ad = new Ad($config);
             $data = json_decode(file_get_contents('php://input'), true);
@@ -361,14 +328,12 @@ try {
                 'is_smart_creative' => false
             ];
 
-            // Add creative (video or image)
             if (!empty($data['video_id'])) {
                 $params['video_id'] = $data['video_id'];
             } elseif (!empty($data['image_ids'])) {
                 $params['image_ids'] = $data['image_ids'];
             }
 
-            // Add tracking parameters
             if (!empty($data['tracking_url'])) {
                 $params['tracking_pixel_id'] = $data['tracking_url'];
             }
@@ -385,21 +350,30 @@ try {
         case 'upload_image':
             $file = new File($config);
 
+            logToFile("============ IMAGE UPLOAD REQUEST ============");
             logToFile("Upload Image Request - FILES: " . json_encode($_FILES, JSON_PRETTY_PRINT));
 
             if (!isset($_FILES['image'])) {
                 throw new Exception('No image file provided');
             }
 
-            // Check for upload errors
             if ($_FILES['image']['error'] !== UPLOAD_ERR_OK) {
-                throw new Exception('File upload error: ' . $_FILES['image']['error']);
+                $uploadErrors = [
+                    UPLOAD_ERR_INI_SIZE => 'File exceeds upload_max_filesize',
+                    UPLOAD_ERR_FORM_SIZE => 'File exceeds MAX_FILE_SIZE',
+                    UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
+                    UPLOAD_ERR_NO_FILE => 'No file was uploaded',
+                    UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
+                    UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+                    UPLOAD_ERR_EXTENSION => 'PHP extension stopped upload'
+                ];
+                $errorMsg = $uploadErrors[$_FILES['image']['error']] ?? 'Unknown error: ' . $_FILES['image']['error'];
+                throw new Exception($errorMsg);
             }
 
             $fileName = $_FILES['image']['name'];
             $tmpPath = $_FILES['image']['tmp_name'];
 
-            // Verify file exists
             if (!file_exists($tmpPath)) {
                 throw new Exception('Uploaded file not found at: ' . $tmpPath);
             }
@@ -417,10 +391,6 @@ try {
                 'image_signature' => $imageSignature
             ];
 
-            logToFile("Image CURLFile created - Path: " . $tmpPath . ", Type: " . $_FILES['image']['type'] . ", Name: " . $fileName);
-
-            logToFile("Image Upload Params: " . json_encode(array_diff_key($params, ['image_file' => '']), JSON_PRETTY_PRINT));
-
             $response = $file->uploadImage($params);
 
             logToFile("Image Upload Response: " . json_encode($response, JSON_PRETTY_PRINT));
@@ -436,58 +406,213 @@ try {
         case 'upload_video':
             $file = new File($config);
 
+            logToFile("============ VIDEO UPLOAD REQUEST ============");
             logToFile("Upload Video Request - FILES: " . json_encode($_FILES, JSON_PRETTY_PRINT));
+            logToFile("PHP Limits - upload_max_filesize: " . ini_get('upload_max_filesize'));
+            logToFile("PHP Limits - post_max_size: " . ini_get('post_max_size'));
+            logToFile("PHP Limits - memory_limit: " . ini_get('memory_limit'));
+            logToFile("PHP Limits - max_execution_time: " . ini_get('max_execution_time'));
 
             if (!isset($_FILES['video'])) {
                 throw new Exception('No video file provided');
             }
 
-            // Check for upload errors
+            // Detailed upload error handling
+            $uploadErrors = [
+                UPLOAD_ERR_INI_SIZE => 'File exceeds upload_max_filesize in php.ini (' . ini_get('upload_max_filesize') . ')',
+                UPLOAD_ERR_FORM_SIZE => 'File exceeds MAX_FILE_SIZE in HTML form',
+                UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
+                UPLOAD_ERR_NO_FILE => 'No file was uploaded',
+                UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
+                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+                UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload'
+            ];
+
             if ($_FILES['video']['error'] !== UPLOAD_ERR_OK) {
-                throw new Exception('File upload error: ' . $_FILES['video']['error']);
+                $errorMsg = $uploadErrors[$_FILES['video']['error']] ?? 'Unknown upload error: ' . $_FILES['video']['error'];
+                logToFile("Upload Error: " . $errorMsg);
+                throw new Exception($errorMsg);
             }
 
             $fileName = $_FILES['video']['name'];
             $tmpPath = $_FILES['video']['tmp_name'];
+            $fileSize = $_FILES['video']['size'];
+            $uploadedMimeType = $_FILES['video']['type'];
+
+            logToFile("Video File Details:");
+            logToFile("  - Name: " . $fileName);
+            logToFile("  - Temp Path: " . $tmpPath);
+            logToFile("  - Size: " . $fileSize . " bytes (" . round($fileSize / 1024 / 1024, 2) . " MB)");
+            logToFile("  - Uploaded MIME Type: " . $uploadedMimeType);
 
             // Verify file exists
             if (!file_exists($tmpPath)) {
                 throw new Exception('Uploaded file not found at: ' . $tmpPath);
             }
 
+            // Verify file size (TikTok max is 500MB)
+            $maxSize = 500 * 1024 * 1024;
+            if ($fileSize > $maxSize) {
+                throw new Exception('Video file too large. Max: 500MB, Uploaded: ' . round($fileSize / 1024 / 1024, 2) . 'MB');
+            }
+
+            // Detect actual MIME type
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $detectedMimeType = finfo_file($finfo, $tmpPath);
+            finfo_close($finfo);
+
+            logToFile("  - Detected MIME Type: " . $detectedMimeType);
+
+            // Use detected MIME type if available
+            $mimeType = $detectedMimeType ?: $uploadedMimeType;
+
+            // Get video signature
             $videoSignature = md5_file($tmpPath);
+            logToFile("  - Video Signature (MD5): " . $videoSignature);
 
-            logToFile("Video Upload - Temp Path: " . $tmpPath);
-            logToFile("Video Upload - File Exists: " . (file_exists($tmpPath) ? 'yes' : 'no'));
-
-            logToFile("Video Upload - File: " . $fileName);
-            logToFile("Video Upload - Advertiser ID: " . $advertiser_id);
-            logToFile("Video Upload - Signature: " . $videoSignature);
-
+            // IMPORTANT: Use boolean true, not string 'true'
             $params = [
                 'advertiser_id' => $advertiser_id,
                 'file_name' => $fileName,
                 'upload_type' => 'UPLOAD_BY_FILE',
-                'video_file' => new CURLFile($tmpPath, $_FILES['video']['type'], $fileName),
+                'video_file' => new CURLFile($tmpPath, $mimeType, $fileName),
+                'video_signature' => $videoSignature,
+                'flaw_detect' => true,
+                'auto_fix_enabled' => true,
+                'auto_bind_enabled' => true
+            ];
+
+            logToFile("Video Upload Params (without file): " . json_encode(array_diff_key($params, ['video_file' => '']), JSON_PRETTY_PRINT));
+
+            try {
+                // Increase timeout for large videos
+                set_time_limit(300);
+
+                logToFile("Calling SDK uploadVideo()...");
+                $response = $file->uploadVideo($params);
+
+                logToFile("Video Upload Response: " . json_encode($response, JSON_PRETTY_PRINT));
+                logToFile("Response Code: " . ($response->code ?? 'null'));
+                logToFile("Response Message: " . ($response->message ?? 'null'));
+
+                if (!empty($response->code)) {
+                    logToFile("ERROR: TikTok API returned error code: " . $response->code);
+                    
+                    echo json_encode([
+                        'success' => false,
+                        'data' => $response->data ?? null,
+                        'message' => $response->message ?? 'Video upload failed',
+                        'code' => $response->code,
+                        'debug' => [
+                            'file_name' => $fileName,
+                            'file_size' => $fileSize,
+                            'advertiser_id' => $advertiser_id
+                        ]
+                    ]);
+                } else {
+                    logToFile("SUCCESS: Video uploaded successfully");
+                    logToFile("Video ID: " . ($response->data->video_id ?? 'N/A'));
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'data' => $response->data ?? null,
+                        'message' => 'Video uploaded successfully',
+                        'video_id' => $response->data->video_id ?? null
+                    ]);
+                }
+            } catch (Exception $e) {
+                logToFile("EXCEPTION during SDK upload: " . $e->getMessage());
+                throw new Exception('Video upload failed: ' . $e->getMessage());
+            }
+            break;
+
+        case 'upload_video_direct':
+            // Direct cURL implementation - fallback if SDK fails
+            logToFile("============ DIRECT VIDEO UPLOAD REQUEST ============");
+            
+            if (!isset($_FILES['video'])) {
+                throw new Exception('No video file provided');
+            }
+
+            $uploadErrors = [
+                UPLOAD_ERR_INI_SIZE => 'File exceeds upload_max_filesize',
+                UPLOAD_ERR_FORM_SIZE => 'File exceeds MAX_FILE_SIZE',
+                UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
+                UPLOAD_ERR_NO_FILE => 'No file was uploaded',
+                UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
+                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+                UPLOAD_ERR_EXTENSION => 'PHP extension stopped upload'
+            ];
+
+            if ($_FILES['video']['error'] !== UPLOAD_ERR_OK) {
+                $errorMsg = $uploadErrors[$_FILES['video']['error']] ?? 'Unknown error';
+                throw new Exception($errorMsg);
+            }
+
+            $fileName = $_FILES['video']['name'];
+            $tmpPath = $_FILES['video']['tmp_name'];
+            $fileSize = $_FILES['video']['size'];
+            
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $tmpPath);
+            finfo_close($finfo);
+            
+            $videoSignature = md5_file($tmpPath);
+            
+            logToFile("Direct Upload - File: $fileName, Size: $fileSize bytes, MIME: $mimeType");
+
+            $url = 'https://business-api.tiktok.com/open_api/v1.3/file/video/ad/upload/';
+            
+            $postFields = [
+                'advertiser_id' => $advertiser_id,
+                'file_name' => $fileName,
+                'upload_type' => 'UPLOAD_BY_FILE',
+                'video_file' => new CURLFile($tmpPath, $mimeType, $fileName),
                 'video_signature' => $videoSignature,
                 'flaw_detect' => 'true',
                 'auto_fix_enabled' => 'true',
                 'auto_bind_enabled' => 'true'
             ];
 
-            logToFile("Video CURLFile created - Path: " . $tmpPath . ", Type: " . $_FILES['video']['type'] . ", Name: " . $fileName);
+            $ch = curl_init();
+            
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $postFields,
+                CURLOPT_HTTPHEADER => [
+                    'Access-Token: ' . $config['access_token']
+                ],
+                CURLOPT_TIMEOUT => 300,
+                CURLOPT_CONNECTTIMEOUT => 30,
+                CURLOPT_SSL_VERIFYPEER => true
+            ]);
 
-            logToFile("Video Upload Params: " . json_encode(array_diff_key($params, ['video_file' => '']), JSON_PRETTY_PRINT));
+            logToFile("Executing direct cURL request...");
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            
+            curl_close($ch);
 
-            $response = $file->uploadVideo($params);
+            logToFile("HTTP Status: $httpCode");
+            logToFile("cURL Error: " . ($curlError ?: 'None'));
+            logToFile("Response: " . $response);
 
-            logToFile("Video Upload Response: " . json_encode($response, JSON_PRETTY_PRINT));
+            if ($curlError) {
+                throw new Exception('cURL Error: ' . $curlError);
+            }
+
+            $responseData = json_decode($response, true);
 
             echo json_encode([
-                'success' => empty($response->code),
-                'data' => $response->data ?? null,
-                'message' => $response->message ?? 'Video uploaded successfully',
-                'code' => $response->code ?? null
+                'success' => isset($responseData['code']) && $responseData['code'] == 0,
+                'data' => $responseData['data'] ?? null,
+                'message' => $responseData['message'] ?? 'Video upload completed',
+                'code' => $responseData['code'] ?? null,
+                'http_code' => $httpCode
             ]);
             break;
 
@@ -510,8 +635,6 @@ try {
             ]);
 
             logToFile("Get Pixels Response: " . json_encode($response, JSON_PRETTY_PRINT));
-            logToFile("Response Code: " . ($response->code ?? 'null'));
-            logToFile("Response Message: " . ($response->message ?? 'null'));
 
             echo json_encode([
                 'success' => empty($response->code),
@@ -522,8 +645,6 @@ try {
             break;
 
         case 'get_images':
-            // Note: TikTok API requires image_ids to get image info
-            // For now, return empty array - media is tracked after upload
             logToFile("Get Images - Advertiser ID: " . $advertiser_id);
 
             echo json_encode([
@@ -534,8 +655,6 @@ try {
             break;
 
         case 'get_videos':
-            // Note: TikTok API requires video_ids to get video info
-            // For now, return empty array - media is tracked after upload
             logToFile("Get Videos - Advertiser ID: " . $advertiser_id);
 
             echo json_encode([
@@ -608,7 +727,6 @@ try {
             $ad = new Ad($config);
             $data = json_decode(file_get_contents('php://input'), true);
 
-            // Get the original ad details
             $originalAd = $ad->getSelf([
                 'advertiser_id' => $advertiser_id,
                 'ad_ids' => [$data['ad_id']]
@@ -620,7 +738,6 @@ try {
 
             $originalAdData = $originalAd->data->list[0];
 
-            // Create new ad with same settings
             $params = [
                 'advertiser_id' => $advertiser_id,
                 'adgroup_id' => $originalAdData->adgroup_id,
@@ -653,7 +770,6 @@ try {
             $adGroup = new AdGroup($config);
             $data = json_decode(file_get_contents('php://input'), true);
 
-            // Get the original adgroup details
             $originalAdGroup = $adGroup->getSelf([
                 'advertiser_id' => $advertiser_id,
                 'adgroup_ids' => [$data['adgroup_id']]
@@ -665,7 +781,6 @@ try {
 
             $originalData = $originalAdGroup->data->list[0];
 
-            // Create new ad group with same settings
             $params = [
                 'advertiser_id' => $advertiser_id,
                 'campaign_id' => $originalData->campaign_id,
@@ -709,6 +824,9 @@ try {
     }
 
 } catch (Exception $e) {
+    logToFile("EXCEPTION: " . $e->getMessage());
+    logToFile("Stack Trace: " . $e->getTraceAsString());
+    
     http_response_code(500);
     echo json_encode([
         'success' => false,
