@@ -395,8 +395,26 @@ try {
 
             logToFile("Image Upload Response: " . json_encode($response, JSON_PRETTY_PRINT));
 
+            $success = empty($response->code) || $response->code == 0;
+            
+            // If upload successful, store the image ID for later retrieval
+            if ($success && isset($response->data->image_id)) {
+                // Store image ID in session for this session's library
+                if (!isset($_SESSION['uploaded_images'])) {
+                    $_SESSION['uploaded_images'] = [];
+                }
+                $_SESSION['uploaded_images'][] = [
+                    'image_id' => $response->data->image_id,
+                    'file_name' => $fileName,
+                    'upload_time' => time(),
+                    'url' => $response->data->url ?? null
+                ];
+                
+                logToFile("Image uploaded successfully with ID: " . $response->data->image_id);
+            }
+            
             echo json_encode([
-                'success' => empty($response->code) || $response->code == 0,
+                'success' => $success,
                 'data' => $response->data ?? null,
                 'message' => $response->message ?? 'Image uploaded successfully',
                 'code' => $response->code ?? null
@@ -489,8 +507,25 @@ try {
                 $response = json_decode($directResponse);
             }
 
+            $success = empty($response->code) || $response->code == 0;
+            
+            // If upload successful, store the video ID for later retrieval
+            if ($success && isset($response->data->video_id)) {
+                // Store video ID in session for this session's library
+                if (!isset($_SESSION['uploaded_videos'])) {
+                    $_SESSION['uploaded_videos'] = [];
+                }
+                $_SESSION['uploaded_videos'][] = [
+                    'video_id' => $response->data->video_id,
+                    'file_name' => $fileName,
+                    'upload_time' => time()
+                ];
+                
+                logToFile("Video uploaded successfully with ID: " . $response->data->video_id);
+            }
+            
             echo json_encode([
-                'success' => empty($response->code) || $response->code == 0,
+                'success' => $success,
                 'data' => $response->data ?? null,
                 'message' => $response->message ?? 'Video uploaded successfully',
                 'code' => $response->code ?? null
@@ -604,10 +639,12 @@ try {
             
             logToFile("Get Identities Response: " . json_encode($response, JSON_PRETTY_PRINT));
             
-            // Format the identities properly for frontend
-            if (empty($response->code) && isset($response->data->list)) {
+            // Format the identities properly for frontend - check both list and identity_list
+            $identityList = $response->data->identity_list ?? $response->data->list ?? null;
+            
+            if (empty($response->code) && $identityList) {
                 $identities = [];
-                foreach ($response->data->list as $id) {
+                foreach ($identityList as $id) {
                     $identities[] = [
                         'identity_id' => $id->identity_id,
                         'identity_name' => $id->identity_name ?? $id->display_name,
@@ -647,109 +684,48 @@ try {
             break;
 
         case 'get_images':
-            $file = new File($config);
-            
             logToFile("Get Images - Advertiser ID: " . $advertiser_id);
             
-            try {
-                // Get image info from TikTok
-                $params = [
-                    'advertiser_id' => $advertiser_id,
-                    'page' => 1,
-                    'page_size' => 100
-                ];
-                
-                $response = $file->getImageInfo($params);
-                
-                logToFile("Get Images Response: " . json_encode($response, JSON_PRETTY_PRINT));
-                
-                if (empty($response->code) && isset($response->data->list)) {
-                    // Format the response for frontend
-                    $images = [];
-                    foreach ($response->data->list as $image) {
-                        $images[] = [
-                            'image_id' => $image->image_id,
-                            'url' => $image->url ?? $image->image_url,
-                            'width' => $image->width ?? null,
-                            'height' => $image->height ?? null,
-                            'format' => $image->format ?? null,
-                            'file_name' => $image->file_name ?? null
-                        ];
-                    }
-                    
-                    echo json_encode([
-                        'success' => true,
-                        'data' => ['list' => $images]
-                    ]);
-                } else {
-                    echo json_encode([
-                        'success' => true,
-                        'data' => ['list' => []],
-                        'message' => 'No images found in library'
-                    ]);
+            // Return images uploaded in this session
+            $images = [];
+            if (isset($_SESSION['uploaded_images'])) {
+                foreach ($_SESSION['uploaded_images'] as $img) {
+                    $images[] = [
+                        'image_id' => $img['image_id'],
+                        'url' => $img['url'] ?? '',
+                        'file_name' => $img['file_name'] ?? 'Image',
+                        'type' => 'image'
+                    ];
                 }
-            } catch (Exception $e) {
-                logToFile("Error getting images: " . $e->getMessage());
-                echo json_encode([
-                    'success' => true,
-                    'data' => ['list' => []],
-                    'message' => 'Image library - upload images to populate'
-                ]);
             }
+            
+            echo json_encode([
+                'success' => true,
+                'data' => ['list' => $images],
+                'message' => count($images) > 0 ? null : 'Upload images to see them here'
+            ]);
             break;
 
         case 'get_videos':
-            $file = new File($config);
-            
             logToFile("Get Videos - Advertiser ID: " . $advertiser_id);
             
-            try {
-                // Get video info from TikTok
-                $params = [
-                    'advertiser_id' => $advertiser_id,
-                    'page' => 1,
-                    'page_size' => 100
-                ];
-                
-                $response = $file->getVideoInfo($params);
-                
-                logToFile("Get Videos Response: " . json_encode($response, JSON_PRETTY_PRINT));
-                
-                if (empty($response->code) && isset($response->data->list)) {
-                    // Format the response for frontend
-                    $videos = [];
-                    foreach ($response->data->list as $video) {
-                        $videos[] = [
-                            'video_id' => $video->video_id,
-                            'url' => $video->url ?? $video->video_url ?? $video->preview_url,
-                            'duration' => $video->duration ?? null,
-                            'width' => $video->width ?? null,
-                            'height' => $video->height ?? null,
-                            'format' => $video->format ?? null,
-                            'file_name' => $video->file_name ?? null,
-                            'preview_url' => $video->preview_url ?? null
-                        ];
-                    }
-                    
-                    echo json_encode([
-                        'success' => true,
-                        'data' => ['list' => $videos]
-                    ]);
-                } else {
-                    echo json_encode([
-                        'success' => true,
-                        'data' => ['list' => []],
-                        'message' => 'No videos found in library'
-                    ]);
+            // Return videos uploaded in this session
+            $videos = [];
+            if (isset($_SESSION['uploaded_videos'])) {
+                foreach ($_SESSION['uploaded_videos'] as $vid) {
+                    $videos[] = [
+                        'video_id' => $vid['video_id'],
+                        'file_name' => $vid['file_name'] ?? 'Video',
+                        'type' => 'video'
+                    ];
                 }
-            } catch (Exception $e) {
-                logToFile("Error getting videos: " . $e->getMessage());
-                echo json_encode([
-                    'success' => true,
-                    'data' => ['list' => []],
-                    'message' => 'Video library - upload videos to populate'
-                ]);
             }
+            
+            echo json_encode([
+                'success' => true,
+                'data' => ['list' => $videos],
+                'message' => count($videos) > 0 ? null : 'Upload videos to see them here'
+            ]);
             break;
 
         case 'get_campaigns':

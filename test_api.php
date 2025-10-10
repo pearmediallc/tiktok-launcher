@@ -26,12 +26,23 @@ echo "============================\n\n";
 
 // Test 1: Get Identities
 echo "1. Testing Get Identities...\n";
-$ch = curl_init('http://localhost/api.php?action=get_identities');
+$url = 'http://localhost/api.php?action=get_identities';
+$ch = curl_init($url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_COOKIE, session_name() . '=' . session_id());
+curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 $response = curl_exec($ch);
-$result = json_decode($response, true);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
+
+echo "   HTTP Code: $httpCode\n";
+echo "   Raw Response: " . substr($response, 0, 200) . "\n";
+
+$result = json_decode($response, true);
+if (json_last_error() !== JSON_ERROR_NONE) {
+    echo "   JSON Error: " . json_last_error_msg() . "\n";
+    $result = ['success' => false, 'message' => 'Invalid JSON response'];
+}
 
 if ($result['success']) {
     echo "✓ Identities loaded successfully\n";
