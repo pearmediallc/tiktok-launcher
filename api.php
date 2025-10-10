@@ -5,11 +5,11 @@ ini_set('display_errors', '0');
 ini_set('display_startup_errors', '0');
 
 // Increase PHP limits for video uploads
-ini_set('upload_max_filesize', '500M');
-ini_set('post_max_size', '510M');
-ini_set('memory_limit', '512M');
-ini_set('max_execution_time', '300');
-ini_set('max_input_time', '300');
+// Note: ini_set doesn't work for upload_max_filesize and post_max_size
+// Use .htaccess or php.ini file in this directory instead
+@ini_set('memory_limit', '512M');
+@ini_set('max_execution_time', '300');
+@ini_set('max_input_time', '300');
 
 session_start();
 
@@ -419,18 +419,20 @@ try {
 
             // Detailed upload error handling
             $uploadErrors = [
-                UPLOAD_ERR_INI_SIZE => 'File exceeds upload_max_filesize in php.ini (' . ini_get('upload_max_filesize') . ')',
+                UPLOAD_ERR_INI_SIZE => 'File exceeds upload_max_filesize in php.ini (' . ini_get('upload_max_filesize') . '). Please ask your hosting provider to increase this limit to 500M or modify .htaccess/php.ini file.',
                 UPLOAD_ERR_FORM_SIZE => 'File exceeds MAX_FILE_SIZE in HTML form',
-                UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
+                UPLOAD_ERR_PARTIAL => 'File was only partially uploaded. Please try again.',
                 UPLOAD_ERR_NO_FILE => 'No file was uploaded',
-                UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
-                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
-                UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload'
+                UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder. Contact your hosting provider.',
+                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk. Check server permissions.',
+                UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload. Check your server configuration.'
             ];
 
             if ($_FILES['video']['error'] !== UPLOAD_ERR_OK) {
                 $errorMsg = $uploadErrors[$_FILES['video']['error']] ?? 'Unknown upload error: ' . $_FILES['video']['error'];
                 logToFile("Upload Error: " . $errorMsg);
+                logToFile("Current PHP upload_max_filesize: " . ini_get('upload_max_filesize'));
+                logToFile("Current PHP post_max_size: " . ini_get('post_max_size'));
                 throw new Exception($errorMsg);
             }
 
