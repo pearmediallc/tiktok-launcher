@@ -315,35 +315,41 @@ try {
             $ad = new Ad($config);
             $data = json_decode(file_get_contents('php://input'), true);
 
-            $params = [
-                'advertiser_id' => $advertiser_id,
-                'adgroup_id' => $data['adgroup_id'],
+            // TikTok API expects creatives array structure
+            $creative = [
                 'ad_name' => $data['ad_name'],
                 'ad_format' => $data['ad_format'] ?? 'SINGLE_VIDEO',
                 'ad_text' => $data['ad_text'],
                 'call_to_action' => $data['call_to_action'] ?? 'APPLY_NOW',
                 'landing_page_url' => $data['landing_page_url'],
                 'identity_id' => $data['identity_id'],
-                'identity_type' => 'CUSTOMIZED_USER',
-                'is_smart_creative' => false
+                'identity_type' => 'CUSTOMIZED_USER'
             ];
 
-            if (!empty($data['video_id'])) {
-                $params['video_id'] = $data['video_id'];
+            // Add video_id or image_ids based on format
+            if ($data['ad_format'] === 'SINGLE_VIDEO' && !empty($data['video_id'])) {
+                $creative['video_id'] = $data['video_id'];
             } elseif (!empty($data['image_ids'])) {
-                $params['image_ids'] = $data['image_ids'];
+                $creative['image_ids'] = is_array($data['image_ids']) ? $data['image_ids'] : [$data['image_ids']];
             }
 
-            if (!empty($data['tracking_url'])) {
-                $params['tracking_pixel_id'] = $data['tracking_url'];
-            }
+            $params = [
+                'advertiser_id' => $advertiser_id,
+                'adgroup_id' => $data['adgroup_id'],
+                'creatives' => [$creative]
+            ];
+
+            logToFile("Create Ad Request: " . json_encode($params, JSON_PRETTY_PRINT));
 
             $response = $ad->create($params);
 
+            logToFile("Create Ad Response: " . json_encode($response, JSON_PRETTY_PRINT));
+
             echo json_encode([
-                'success' => empty($response->code),
+                'success' => empty($response->code) || $response->code == 0,
                 'data' => $response->data ?? null,
-                'message' => $response->message ?? 'Ad created successfully'
+                'message' => $response->message ?? 'Ad created successfully',
+                'code' => $response->code ?? null
             ]);
             break;
 
@@ -684,47 +690,133 @@ try {
             break;
 
         case 'get_images':
+            $file = new File($config);
             logToFile("Get Images - Advertiser ID: " . $advertiser_id);
             
-            // Return images uploaded in this session
             $images = [];
-            if (isset($_SESSION['uploaded_images'])) {
-                foreach ($_SESSION['uploaded_images'] as $img) {
-                    $images[] = [
-                        'image_id' => $img['image_id'],
-                        'url' => $img['url'] ?? '',
-                        'file_name' => $img['file_name'] ?? 'Image',
-                        'type' => 'image'
-                    ];
+            
+            // First, check if we have uploaded images in session
+            if (isset($_SESSION['uploaded_images']) && !empty($_SESSION['uploaded_images'])) {
+                // Get image details from TikTok for each stored ID
+                $image_ids = array_column($_SESSION['uploaded_images'], 'image_id');
+                
+                if (!empty($image_ids)) {
+                    try {
+                        $params = [
+                            'advertiser_id' => $advertiser_id,
+                            'image_ids' => $image_ids
+                        ];
+                        
+                        $response = $file->getImageInfo($params);
+                        logToFile("Get Image Info Response: " . json_encode($response, JSON_PRETTY_PRINT));
+                        
+                        if (empty($response->code) && isset($response->data->list)) {
+                            foreach ($response->data->list as $image) {
+                                $images[] = [
+                                    'image_id' => $image->image_id,
+                                    'url' => $image->image_url ?? $image->url ?? '',
+                                    'file_name' => $image->file_name ?? $image->material_name ?? 'Image',
+                                    'width' => $image->width ?? null,
+                                    'height' => $image->height ?? null,
+                                    'format' => $image->format ?? null,
+                                    'type' => 'image'
+                                ];
+                            }
+                        }
+                    } catch (Exception $e) {
+                        logToFile("Error fetching image info: " . $e->getMessage());
+                        // Fall back to session data
+                        foreach ($_SESSION['uploaded_images'] as $img) {
+                            $images[] = [
+                                'image_id' => $img['image_id'],
+                                'url' => $img['url'] ?? '',
+                                'file_name' => $img['file_name'] ?? 'Image',
+                                'type' => 'image'
+                            ];
+                        }
+                    }
+                } else {
+                    // Use session data if no IDs
+                    foreach ($_SESSION['uploaded_images'] as $img) {
+                        $images[] = [
+                            'image_id' => $img['image_id'],
+                            'url' => $img['url'] ?? '',
+                            'file_name' => $img['file_name'] ?? 'Image',
+                            'type' => 'image'
+                        ];
+                    }
                 }
             }
             
             echo json_encode([
                 'success' => true,
                 'data' => ['list' => $images],
-                'message' => count($images) > 0 ? null : 'Upload images to see them here'
+                'message' => count($images) > 0 ? null : 'Upload images to see them in library'
             ]);
             break;
 
         case 'get_videos':
+            $file = new File($config);
             logToFile("Get Videos - Advertiser ID: " . $advertiser_id);
             
-            // Return videos uploaded in this session
             $videos = [];
-            if (isset($_SESSION['uploaded_videos'])) {
-                foreach ($_SESSION['uploaded_videos'] as $vid) {
-                    $videos[] = [
-                        'video_id' => $vid['video_id'],
-                        'file_name' => $vid['file_name'] ?? 'Video',
-                        'type' => 'video'
-                    ];
+            
+            // First, check if we have uploaded videos in session
+            if (isset($_SESSION['uploaded_videos']) && !empty($_SESSION['uploaded_videos'])) {
+                // Get video details from TikTok for each stored ID
+                $video_ids = array_column($_SESSION['uploaded_videos'], 'video_id');
+                
+                if (!empty($video_ids)) {
+                    try {
+                        $params = [
+                            'advertiser_id' => $advertiser_id,
+                            'video_ids' => $video_ids
+                        ];
+                        
+                        $response = $file->getVideoInfo($params);
+                        logToFile("Get Video Info Response: " . json_encode($response, JSON_PRETTY_PRINT));
+                        
+                        if (empty($response->code) && isset($response->data->list)) {
+                            foreach ($response->data->list as $video) {
+                                $videos[] = [
+                                    'video_id' => $video->video_id,
+                                    'url' => $video->video_url ?? $video->preview_url ?? '',
+                                    'preview_url' => $video->preview_url ?? $video->cover_url ?? '',
+                                    'file_name' => $video->file_name ?? $video->video_name ?? 'Video',
+                                    'duration' => $video->duration ?? null,
+                                    'width' => $video->width ?? null,
+                                    'height' => $video->height ?? null,
+                                    'type' => 'video'
+                                ];
+                            }
+                        }
+                    } catch (Exception $e) {
+                        logToFile("Error fetching video info: " . $e->getMessage());
+                        // Fall back to session data
+                        foreach ($_SESSION['uploaded_videos'] as $vid) {
+                            $videos[] = [
+                                'video_id' => $vid['video_id'],
+                                'file_name' => $vid['file_name'] ?? 'Video',
+                                'type' => 'video'
+                            ];
+                        }
+                    }
+                } else {
+                    // Use session data if no IDs
+                    foreach ($_SESSION['uploaded_videos'] as $vid) {
+                        $videos[] = [
+                            'video_id' => $vid['video_id'],
+                            'file_name' => $vid['file_name'] ?? 'Video',
+                            'type' => 'video'
+                        ];
+                    }
                 }
             }
             
             echo json_encode([
                 'success' => true,
                 'data' => ['list' => $videos],
-                'message' => count($videos) > 0 ? null : 'Upload videos to see them here'
+                'message' => count($videos) > 0 ? null : 'Upload videos to see them in library'
             ]);
             break;
 

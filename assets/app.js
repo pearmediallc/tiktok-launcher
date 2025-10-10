@@ -583,6 +583,8 @@ function switchMediaTab(tab, evt) {
 // Load media library
 async function loadMediaLibrary() {
     try {
+        showToast('Loading media library...', 'info');
+        
         const [imagesResponse, videosResponse] = await Promise.all([
             apiRequest('get_images', {}, 'GET'),
             apiRequest('get_videos', {}, 'GET')
@@ -605,9 +607,21 @@ async function loadMediaLibrary() {
         }
 
         renderMediaGrid();
+        
+        if (state.mediaLibrary.length === 0) {
+            showToast('No media found. Upload files to add to library.', 'info');
+        } else {
+            showToast(`Loaded ${state.mediaLibrary.length} media file(s)`, 'success');
+        }
     } catch (error) {
         console.error('Error loading media library:', error);
+        showToast('Error loading media library', 'error');
     }
+}
+
+// Refresh media library
+async function refreshMediaLibrary() {
+    await loadMediaLibrary();
 }
 
 // Render media grid
@@ -623,32 +637,69 @@ function renderMediaGrid() {
     state.mediaLibrary.forEach(media => {
         const item = document.createElement('div');
         item.className = 'media-item';
-        item.dataset.id = media.id || media.video_id || media.image_id;
+        item.dataset.id = media.video_id || media.image_id || media.id;
         item.dataset.type = media.type;
         item.onclick = () => selectMedia(media);
 
         if (media.type === 'image') {
-            // For images, use the URL provided
-            const imgUrl = media.image_url || media.url;
+            // For images, use the URL provided by TikTok
+            const imgUrl = media.url || media.image_url;
             if (imgUrl) {
-                item.innerHTML = `<img src="${imgUrl}" alt="${media.file_name || 'Image'}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect width="100" height="100" fill="%23ddd"/%3E%3Ctext x="50%%" y="50%%" text-anchor="middle" dy=".3em" fill="%23999"%3EImage%3C/text%3E%3C/svg%3E'">`;
+                item.innerHTML = `
+                    <img src="${imgUrl}" 
+                         alt="${media.file_name || 'Image'}" 
+                         style="width: 100%; height: 100%; object-fit: cover;"
+                         onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'%3E%3Crect width=\'100\' height=\'100\' fill=\'%23ddd\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' fill=\'%23999\'%3E${media.image_id || 'Image'}%3C/text%3E%3C/svg%3E'">
+                    <div class="media-info">
+                        <span class="media-id">${media.image_id}</span>
+                        <span class="media-name">${media.file_name || 'Image'}</span>
+                    </div>`;
             } else {
-                item.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Image</div>';
+                item.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: #999;">
+                        <div>Image ID: ${media.image_id}</div>
+                        <div>${media.file_name || 'No preview'}</div>
+                    </div>`;
             }
         } else {
-            // For videos, use preview URL or video URL
-            const videoUrl = media.preview_url || media.video_url || media.url;
-            if (videoUrl) {
-                // Use poster image if available, otherwise just show video
-                item.innerHTML = `<video src="${videoUrl}" poster="${media.preview_url || ''}" muted></video>`;
+            // For videos, show preview image or placeholder
+            const previewUrl = media.preview_url || media.cover_url;
+            const videoUrl = media.url || media.video_url;
+            
+            if (previewUrl) {
+                item.innerHTML = `
+                    <img src="${previewUrl}" 
+                         alt="Video: ${media.file_name || media.video_id}" 
+                         style="width: 100%; height: 100%; object-fit: cover;">
+                    <div class="media-info">
+                        <span class="media-type-icon">▶️</span>
+                        <span class="media-id">${media.video_id}</span>
+                        <span class="media-name">${media.file_name || 'Video'}</span>
+                        ${media.duration ? `<span class="media-duration">${Math.round(media.duration)}s</span>` : ''}
+                    </div>`;
+            } else if (videoUrl) {
+                item.innerHTML = `
+                    <video src="${videoUrl}" 
+                           style="width: 100%; height: 100%; object-fit: cover;"
+                           muted></video>
+                    <div class="media-info">
+                        <span class="media-type-icon">▶️</span>
+                        <span class="media-id">${media.video_id}</span>
+                        <span class="media-name">${media.file_name || 'Video'}</span>
+                    </div>`;
             } else {
-                item.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Video</div>';
+                item.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: #999;">
+                        <div>🎥</div>
+                        <div>Video ID: ${media.video_id}</div>
+                        <div>${media.file_name || 'No preview'}</div>
+                    </div>`;
             }
         }
 
-        // Add file name or ID as tooltip
-        const label = media.file_name || media.video_id || media.image_id || 'Media';
-        item.title = label;
+        // Add file info as tooltip
+        const dimensions = (media.width && media.height) ? ` (${media.width}x${media.height})` : '';
+        item.title = `${media.file_name || 'Media'} - ID: ${media.video_id || media.image_id}${dimensions}`;
 
         grid.appendChild(item);
     });
@@ -686,27 +737,48 @@ function confirmMediaSelection() {
     document.getElementById(`creative-id-${adIndex}`).value = mediaId;
     document.getElementById(`creative-type-${adIndex}`).value = media.type;
 
-    // Show preview
+    // Show preview in the ad form
     const preview = document.getElementById(`creative-preview-${adIndex}`);
     const placeholder = document.getElementById(`creative-placeholder-${adIndex}`);
+    const placeholderContainer = placeholder.parentElement;
     
     if (media.type === 'image') {
-        preview.src = media.image_url || media.url || '';
-        preview.style.display = 'block';
-        placeholder.textContent = `Image selected: ${media.file_name || mediaId}`;
-    } else {
-        // For video, show thumbnail or placeholder
-        if (media.preview_url) {
-            preview.src = media.preview_url;
+        const imgUrl = media.url || media.image_url;
+        if (imgUrl) {
+            preview.src = imgUrl;
             preview.style.display = 'block';
+            preview.alt = `Image: ${media.file_name || media.image_id}`;
+        }
+        placeholderContainer.style.backgroundImage = imgUrl ? `url(${imgUrl})` : 'none';
+        placeholderContainer.style.backgroundSize = 'cover';
+        placeholderContainer.style.backgroundPosition = 'center';
+        placeholder.innerHTML = `
+            <div style="background: rgba(0,0,0,0.7); color: white; padding: 5px; border-radius: 4px;">
+                📷 Image: ${media.file_name || media.image_id}
+            </div>`;
+    } else {
+        // For video, show thumbnail or video icon
+        const previewUrl = media.preview_url || media.cover_url;
+        if (previewUrl) {
+            preview.src = previewUrl;
+            preview.style.display = 'block';
+            preview.alt = `Video: ${media.file_name || media.video_id}`;
+            placeholderContainer.style.backgroundImage = `url(${previewUrl})`;
         } else {
             preview.style.display = 'none';
+            placeholderContainer.style.backgroundImage = 'none';
         }
-        placeholder.textContent = `Video selected: ${media.file_name || mediaId}`;
+        placeholderContainer.style.backgroundSize = 'cover';
+        placeholderContainer.style.backgroundPosition = 'center';
+        placeholder.innerHTML = `
+            <div style="background: rgba(0,0,0,0.7); color: white; padding: 5px; border-radius: 4px;">
+                🎥 Video: ${media.file_name || media.video_id}
+                ${media.duration ? ` (${Math.round(media.duration)}s)` : ''}
+            </div>`;
     }
 
     closeMediaModal();
-    showToast('Media selected successfully', 'success');
+    showToast(`${media.type === 'video' ? 'Video' : 'Image'} selected: ${media.file_name || mediaId}`, 'success');
 }
 
 // Handle media upload

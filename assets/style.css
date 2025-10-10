@@ -522,6 +522,52 @@ h3 {
     object-fit: cover;
 }
 
+/* Media info overlay */
+.media-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    color: white;
+    padding: 8px;
+    font-size: 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.media-info .media-id {
+    font-size: 9px;
+    opacity: 0.7;
+    font-family: monospace;
+}
+
+.media-info .media-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.media-info .media-duration {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+}
+
+.media-info .media-type-icon {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    font-size: 20px;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
 .upload-area {
     border: 2px dashed #ccc;
     border-radius: 8px;
