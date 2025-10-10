@@ -53,7 +53,18 @@ function clearLogs() {
 
 function toggleLogsPanel() {
     const logsPanel = document.getElementById('logs-panel');
+    const toggleIcon = document.getElementById('logs-toggle-icon');
+    const toggleBtn = document.querySelector('.btn-toggle-logs');
+
     logsPanel.classList.toggle('collapsed');
+
+    if (logsPanel.classList.contains('collapsed')) {
+        toggleIcon.textContent = '▲ Show Logs';
+        toggleBtn.textContent = '▲';
+    } else {
+        toggleIcon.textContent = '▼ Hide Logs';
+        toggleBtn.textContent = '▼';
+    }
 }
 
 // Initialize on page load

@@ -305,12 +305,12 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
         <div id="toast" class="toast"></div>
 
         <!-- API Logs Panel -->
-        <div id="logs-panel" class="logs-panel">
-            <div class="logs-header">
-                <h3>📋 API Request Logs</h3>
-                <div class="logs-controls">
+        <div id="logs-panel" class="logs-panel collapsed">
+            <div class="logs-header" onclick="toggleLogsPanel()" style="cursor: pointer;">
+                <h3>📋 API Request Logs <span id="logs-toggle-icon">▲ Show Logs</span></h3>
+                <div class="logs-controls" onclick="event.stopPropagation();">
                     <button class="btn-clear-logs" onclick="clearLogs()">Clear</button>
-                    <button class="btn-toggle-logs" onclick="toggleLogsPanel()">▼</button>
+                    <button class="btn-toggle-logs" onclick="toggleLogsPanel()">▲</button>
                 </div>
             </div>
             <div class="logs-content" id="logs-content">

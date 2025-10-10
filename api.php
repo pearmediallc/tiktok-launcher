@@ -385,12 +385,26 @@ try {
         case 'upload_image':
             $file = new File($config);
 
+            logToFile("Upload Image Request - FILES: " . json_encode($_FILES, JSON_PRETTY_PRINT));
+
             if (!isset($_FILES['image'])) {
                 throw new Exception('No image file provided');
             }
 
+            // Check for upload errors
+            if ($_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+                throw new Exception('File upload error: ' . $_FILES['image']['error']);
+            }
+
             $fileName = $_FILES['image']['name'];
-            $imageSignature = md5_file($_FILES['image']['tmp_name']);
+            $tmpPath = $_FILES['image']['tmp_name'];
+
+            // Verify file exists
+            if (!file_exists($tmpPath)) {
+                throw new Exception('Uploaded file not found at: ' . $tmpPath);
+            }
+
+            $imageSignature = md5_file($tmpPath);
 
             logToFile("Image Upload - File: " . $fileName);
             logToFile("Image Upload - Advertiser ID: " . $advertiser_id);
@@ -420,12 +434,29 @@ try {
         case 'upload_video':
             $file = new File($config);
 
+            logToFile("Upload Video Request - FILES: " . json_encode($_FILES, JSON_PRETTY_PRINT));
+
             if (!isset($_FILES['video'])) {
                 throw new Exception('No video file provided');
             }
 
+            // Check for upload errors
+            if ($_FILES['video']['error'] !== UPLOAD_ERR_OK) {
+                throw new Exception('File upload error: ' . $_FILES['video']['error']);
+            }
+
             $fileName = $_FILES['video']['name'];
-            $videoSignature = md5_file($_FILES['video']['tmp_name']);
+            $tmpPath = $_FILES['video']['tmp_name'];
+
+            // Verify file exists
+            if (!file_exists($tmpPath)) {
+                throw new Exception('Uploaded file not found at: ' . $tmpPath);
+            }
+
+            $videoSignature = md5_file($tmpPath);
+
+            logToFile("Video Upload - Temp Path: " . $tmpPath);
+            logToFile("Video Upload - File Exists: " . (file_exists($tmpPath) ? 'yes' : 'no'));
 
             logToFile("Video Upload - File: " . $fileName);
             logToFile("Video Upload - Advertiser ID: " . $advertiser_id);
