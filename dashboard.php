@@ -261,6 +261,12 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                     <h3>Select Media <span id="selection-counter" style="font-size: 14px; color: #667eea; margin-left: 10px; display: none;"></span></h3>
                     <span class="modal-close" onclick="closeMediaModal()">&times;</span>
                 </div>
+                <div style="padding: 10px 20px; background: #e8f4f8; border-bottom: 1px solid #eee;">
+                    <p style="margin: 0; font-size: 13px; color: #333;">
+                        <strong>For Video Ads:</strong> Select 1 video + 1 image (as cover). 
+                        <strong>For Image Ads:</strong> Select 1 image only.
+                    </p>
+                </div>
                 <div class="modal-tabs">
                     <button class="tab-btn active" onclick="switchMediaTab('library', event)">Library</button>
                     <button class="tab-btn" onclick="switchMediaTab('upload', event)">Upload New</button>

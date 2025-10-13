@@ -796,7 +796,7 @@ function updateSelectionCounter() {
 }
 
 // Confirm media selection
-async function confirmMediaSelection() {
+function confirmMediaSelection() {
     if (!state.selectedMedia || state.selectedMedia.length === 0) {
         showToast('Please select at least one media file', 'error');
         return;
@@ -805,45 +805,51 @@ async function confirmMediaSelection() {
     const adIndex = state.currentAdIndex;
     const selectedMediaList = state.selectedMedia;
     
-    // For now, use the first selected media (can be extended for carousel ads)
-    const media = selectedMediaList[0];
+    // Check if we have a video and an image selected
+    const videos = selectedMediaList.filter(m => m.type === 'video');
+    const images = selectedMediaList.filter(m => m.type === 'image');
     
-    // For videos, upload the cover image to get an image_id
-    if (media.type === 'video' && media.video_cover_url) {
-        showLoading();
-        try {
-            console.log('Uploading video cover to get image_id...');
-            const coverResponse = await apiRequest('upload_cover_from_url', {
-                cover_url: media.video_cover_url
-            });
-            
-            if (coverResponse.success && coverResponse.image_id) {
-                console.log('Cover uploaded successfully, image_id:', coverResponse.image_id);
-                media.cover_image_id = coverResponse.image_id;
-            } else {
-                console.warn('Failed to upload cover image:', coverResponse.message);
-            }
-        } catch (error) {
-            console.error('Error uploading cover:', error);
-        } finally {
-            hideLoading();
+    let primaryMedia = null;
+    let coverImageId = null;
+    
+    if (videos.length > 0) {
+        // Use video as primary media
+        primaryMedia = videos[0];
+        
+        // If an image is also selected, use it as cover
+        if (images.length > 0) {
+            coverImageId = images[0].image_id;
+            console.log(`Using selected image as cover: ${coverImageId}`);
+        } else {
+            showToast('Please also select an image for video cover (required by TikTok)', 'warning');
         }
+    } else if (images.length > 0) {
+        // Single image ad
+        primaryMedia = images[0];
+    } else {
+        showToast('Please select media', 'error');
+        return;
+    }
+    
+    // Store the cover image ID if we have one
+    if (coverImageId) {
+        primaryMedia.cover_image_id = coverImageId;
     }
 
     // Update ad form with the correct ID
-    const mediaId = media.video_id || media.image_id || media.id;
+    const mediaId = primaryMedia.video_id || primaryMedia.image_id || primaryMedia.id;
     if (!mediaId) {
         showToast('Invalid media selection - no ID found', 'error');
         return;
     }
     
     document.getElementById(`creative-id-${adIndex}`).value = mediaId;
-    document.getElementById(`creative-type-${adIndex}`).value = media.type;
+    document.getElementById(`creative-type-${adIndex}`).value = primaryMedia.type;
     
     // Store the cover image ID if available
-    if (media.cover_image_id) {
-        document.getElementById(`cover-image-id-${adIndex}`).value = media.cover_image_id;
-        console.log(`Stored cover image ID for ad ${adIndex}: ${media.cover_image_id}`);
+    if (primaryMedia.cover_image_id) {
+        document.getElementById(`cover-image-id-${adIndex}`).value = primaryMedia.cover_image_id;
+        console.log(`Stored cover image ID for ad ${adIndex}: ${primaryMedia.cover_image_id}`);
     }
 
     // Show preview in the ad form
@@ -854,8 +860,8 @@ async function confirmMediaSelection() {
     // Add has-media class for styling
     placeholderContainer.classList.add('has-media');
     
-    if (media.type === 'image') {
-        const imgUrl = media.url || media.image_url;
+    if (primaryMedia.type === 'image') {
+        const imgUrl = primaryMedia.url || primaryMedia.image_url;
         if (imgUrl) {
             placeholderContainer.style.backgroundImage = `url(${imgUrl})`;
         }
@@ -863,11 +869,11 @@ async function confirmMediaSelection() {
             <div class="media-selected-info">
                 <div class="media-type-badge">📷</div>
                 <div class="media-name">Image Selected</div>
-                <div class="media-id">ID: ${media.image_id}</div>
+                <div class="media-id">ID: ${primaryMedia.image_id}</div>
             </div>`;
     } else {
         // For video, show thumbnail or video icon
-        const previewUrl = media.preview_url || media.thumbnail_url || media.poster_url || media.cover_url;
+        const previewUrl = primaryMedia.preview_url || primaryMedia.thumbnail_url || primaryMedia.poster_url || primaryMedia.cover_url;
         if (previewUrl) {
             placeholderContainer.style.backgroundImage = `url(${previewUrl})`;
             placeholderContainer.style.backgroundSize = 'cover';
@@ -876,20 +882,28 @@ async function confirmMediaSelection() {
             placeholderContainer.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
         }
         
-        const fileName = media.file_name || 'Video';
-        const duration = media.duration ? `${Math.round(media.duration)}s` : '';
+        const fileName = primaryMedia.file_name || 'Video';
+        const duration = primaryMedia.duration ? `${Math.round(primaryMedia.duration)}s` : '';
+        const coverInfo = primaryMedia.cover_image_id ? '<div style="font-size: 10px; color: #4CAF50;">✓ Cover image selected</div>' : '<div style="font-size: 10px; color: #FFA500;">⚠ Need cover image</div>';
         
         placeholder.innerHTML = `
             <div class="media-selected-info">
                 <div class="media-type-badge">🎥</div>
                 <div class="media-name">${fileName}</div>
                 ${duration ? `<div style="font-size: 11px; opacity: 0.9;">⏱ ${duration}</div>` : ''}
-                <div class="media-id">ID: ${media.video_id}</div>
+                <div class="media-id">ID: ${primaryMedia.video_id}</div>
+                ${coverInfo}
             </div>`;
     }
 
     closeMediaModal();
-    showToast(`${media.type === 'video' ? 'Video' : 'Image'} selected: ${media.file_name || mediaId}`, 'success');
+    
+    // Show appropriate message
+    if (primaryMedia.type === 'video' && !primaryMedia.cover_image_id) {
+        showToast(`Video selected. Please also select an image for the cover.`, 'warning');
+    } else {
+        showToast(`${primaryMedia.type === 'video' ? 'Video' : 'Image'} selected: ${primaryMedia.file_name || mediaId}`, 'success');
+    }
 }
 
 // Handle media upload
