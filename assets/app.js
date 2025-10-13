@@ -658,52 +658,59 @@ async function loadImageLibrary() {
 
             console.log(`Loaded ${images.length} images from library`);
             
-            // Add manual input option at the top
-            const manualInputHtml = `
-                <div style="grid-column: 1 / -1; padding: 15px; background: #f0f8ff; border-radius: 8px; margin-bottom: 15px;">
-                    <h4 style="margin: 0 0 10px 0; color: #333;">Manual Image ID Entry</h4>
-                    <p style="font-size: 12px; color: #666; margin: 0 0 10px 0;">
-                        If you know your image ID from TikTok Ads Manager, enter it here:
-                    </p>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="manual-image-id" placeholder="Enter TikTok Image ID" 
-                               style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        <button onclick="useManualImageId()" class="btn-primary" style="padding: 8px 16px;">
-                            Use This Image
-                        </button>
-                    </div>
-                </div>
-            `;
-            
+            // Display images for visual selection
             const imagesHtml = images.map(image => {
-                // Create a safe ID for the onclick
+                // Create a safe object for selection with the image_id
                 const safeImage = {
                     image_id: image.image_id,
-                    url: image.url,
-                    file_name: image.file_name,
+                    url: image.url || '',
+                    file_name: image.file_name || `Image ${image.image_id}`,
                     type: 'image'
                 };
                 
                 return `
-                <div class="media-item" onclick='selectMedia(${JSON.stringify(safeImage)})' data-id="${image.image_id}">
+                <div class="media-item" onclick='selectMedia(${JSON.stringify(safeImage)})' data-id="${image.image_id}" 
+                     style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                     onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.2)'"
+                     onmouseout="this.style.transform='scale(1)'; this.style.boxShadow=''">
                     ${image.url ? 
-                        `<img src="${image.url}" alt="${image.file_name || 'Image'}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.innerHTML='<div class=\\'media-placeholder\\' style=\\'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\\'>🖼️</div>'">` : 
-                        `<div class="media-placeholder" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        `<img src="${image.url}" alt="${image.file_name || 'Image'}" 
+                              style="width: 100%; height: 100%; object-fit: cover;" 
+                              onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'media-placeholder\\' style=\\'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;\\'>🖼️<div style=\\'position: absolute; bottom: 5px; right: 5px; font-size: 9px; background: rgba(0,0,0,0.5); color: white; padding: 2px 4px; border-radius: 3px;\\'>${image.image_id.substring(0, 8)}...</div></div>'">` : 
+                        `<div class="media-placeholder" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); position: relative;">
                             <div class="media-icon">🖼️</div>
+                            <div style="position: absolute; bottom: 5px; right: 5px; font-size: 9px; background: rgba(0,0,0,0.5); color: white; padding: 2px 4px; border-radius: 3px;">
+                                ${image.image_id.substring(0, 8)}...
+                            </div>
                         </div>`
                     }
                     <div class="media-info">
                         <div class="media-name" title="${image.file_name || 'Image'}">${(image.file_name || 'Image').substring(0, 20)}${(image.file_name || '').length > 20 ? '...' : ''}</div>
-                        <div class="media-type">Image</div>
-                        <div style="font-size: 10px; opacity: 0.7;">ID: ${image.image_id.substring(0, 8)}...</div>
+                        <div class="media-type" style="color: #667eea;">Click to Select</div>
                     </div>
                 </div>`;
             }).join('');
             
-            mediaGrid.innerHTML = manualInputHtml + imagesHtml;
+            // Only show manual entry as a small option at the bottom if needed
+            const manualInputHtml = `
+                <div style="grid-column: 1 / -1; padding: 10px; background: #f9f9f9; border-radius: 6px; margin-top: 15px; border: 1px dashed #ddd;">
+                    <details>
+                        <summary style="cursor: pointer; font-size: 13px; color: #666;">Can't see your image? Enter ID manually</summary>
+                        <div style="margin-top: 10px; display: flex; gap: 10px;">
+                            <input type="text" id="manual-image-id" placeholder="Enter TikTok Image ID" 
+                                   style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                            <button onclick="useManualImageId()" class="btn-secondary" style="padding: 6px 12px; font-size: 13px;">
+                                Use ID
+                            </button>
+                        </div>
+                    </details>
+                </div>
+            `;
+            
+            mediaGrid.innerHTML = imagesHtml + (images.length > 0 ? manualInputHtml : '');
             
             if (images.length > 0) {
-                showToast(`Found ${images.length} uploaded images`, 'success');
+                showToast(`Found ${images.length} images. Click any image to select it.`, 'success');
             }
         } else {
             mediaGrid.innerHTML = `
