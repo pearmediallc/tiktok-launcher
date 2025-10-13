@@ -634,12 +634,24 @@ async function loadImageLibrary() {
             
             if (images.length === 0) {
                 mediaGrid.innerHTML = `
-                    <div class="empty-state">
-                        <p>No images found in TikTok library</p>
-                        <small>Upload images to TikTok first or click "Sync from TikTok" above</small>
-                        <button class="btn-primary" style="margin-top: 10px;" onclick="syncImagesFromTikTok()">
-                            📥 Sync Images from TikTok
-                        </button>
+                    <div style="grid-column: 1 / -1;">
+                        <div style="padding: 15px; background: #f0f8ff; border-radius: 8px; margin-bottom: 15px;">
+                            <h4 style="margin: 0 0 10px 0; color: #333;">Manual Image ID Entry</h4>
+                            <p style="font-size: 12px; color: #666; margin: 0 0 10px 0;">
+                                Enter your image ID from TikTok Ads Manager:
+                            </p>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="manual-image-id" placeholder="Enter TikTok Image ID" 
+                                       style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <button onclick="useManualImageId()" class="btn-primary" style="padding: 8px 16px;">
+                                    Use This Image
+                                </button>
+                            </div>
+                        </div>
+                        <div class="empty-state">
+                            <p>No images found in TikTok library</p>
+                            <small>Upload images to TikTok first or enter an image ID manually above</small>
+                        </div>
                     </div>`;
                 return;
             }

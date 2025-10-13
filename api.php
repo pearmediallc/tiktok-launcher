@@ -776,14 +776,102 @@ try {
             
             $images = [];
             
-            // TikTok's image/ad/info endpoint requires specific image_ids
-            // We need to either:
-            // 1. Use the Asset Library endpoint (if available)
-            // 2. Store image IDs when uploading
-            // 3. Get images from ads/campaigns that use them
-            
+            // Use the image search endpoint to get ALL images
             try {
-                // First, check local storage for uploaded images
+                $page = 1;
+                $pageSize = 100;
+                $hasMore = true;
+                
+                while ($hasMore && $page <= 10) { // Limit to 10 pages for safety
+                    // Use the search endpoint that doesn't require image_ids
+                    $url = "https://business-api.tiktok.com/open_api/v1.3/file/image/ad/search/?" . 
+                           "advertiser_id={$advertiser_id}&" .
+                           "page={$page}&" .
+                           "page_size={$pageSize}";
+                    
+                    logToFile("Searching images with URL: " . $url);
+                    
+                    $ch = curl_init();
+                    curl_setopt_array($ch, [
+                        CURLOPT_URL => $url,
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_HTTPHEADER => [
+                            'Access-Token: ' . $accessToken
+                        ]
+                    ]);
+                    
+                    $result = curl_exec($ch);
+                    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+                    
+                    logToFile("Image search HTTP Code: " . $httpCode);
+                    
+                    if ($httpCode == 200) {
+                        $response = json_decode($result);
+                        logToFile("Image search response page {$page}: " . json_encode($response, JSON_PRETTY_PRINT));
+                        
+                        if (isset($response->data->list) && is_array($response->data->list)) {
+                            foreach ($response->data->list as $image) {
+                                $images[] = [
+                                    'image_id' => $image->image_id,
+                                    'url' => $image->image_url ?? $image->url ?? '',
+                                    'file_name' => $image->file_name ?? $image->material_name ?? $image->name ?? 'Image',
+                                    'width' => $image->width ?? null,
+                                    'height' => $image->height ?? null,
+                                    'format' => $image->format ?? null,
+                                    'size' => $image->size ?? null,
+                                    'create_time' => $image->create_time ?? null,
+                                    'modify_time' => $image->modify_time ?? null,
+                                    'type' => 'image'
+                                ];
+                            }
+                            
+                            // Check if there are more pages
+                            if (isset($response->data->page_info)) {
+                                $totalNumber = $response->data->page_info->total_number ?? 0;
+                                $totalPage = $response->data->page_info->total_page ?? 1;
+                                $currentPage = $response->data->page_info->page ?? $page;
+                                
+                                logToFile("Page {$currentPage} of {$totalPage}, Total images: {$totalNumber}");
+                                
+                                $hasMore = $currentPage < $totalPage;
+                                $page++;
+                            } else {
+                                // No page info, assume no more pages
+                                $hasMore = false;
+                            }
+                        } else {
+                            logToFile("No images found in response or invalid response structure");
+                            $hasMore = false;
+                        }
+                    } else {
+                        logToFile("Failed to search images: HTTP {$httpCode}, Response: " . $result);
+                        
+                        // If search fails, try local storage as fallback
+                        $storageFile = __DIR__ . '/media_storage.json';
+                        $storage = json_decode(file_get_contents($storageFile), true) ?? ['images' => [], 'videos' => []];
+                        
+                        $advertiserImages = array_filter($storage['images'] ?? [], function($img) use ($advertiser_id) {
+                            return $img['advertiser_id'] === $advertiser_id;
+                        });
+                        
+                        foreach ($advertiserImages as $img) {
+                            $images[] = [
+                                'image_id' => $img['image_id'],
+                                'url' => $img['url'] ?? '',
+                                'file_name' => $img['file_name'] ?? 'Image',
+                                'type' => 'image'
+                            ];
+                        }
+                        
+                        $hasMore = false;
+                    }
+                }
+                
+            } catch (Exception $e) {
+                logToFile("Error searching images: " . $e->getMessage());
+                
+                // Fallback to local storage
                 $storageFile = __DIR__ . '/media_storage.json';
                 $storage = json_decode(file_get_contents($storageFile), true) ?? ['images' => [], 'videos' => []];
                 
@@ -791,118 +879,14 @@ try {
                     return $img['advertiser_id'] === $advertiser_id;
                 });
                 
-                if (!empty($advertiserImages)) {
-                    // We have stored image IDs, fetch their details from TikTok
-                    $imageIds = array_column($advertiserImages, 'image_id');
-                    
-                    if (!empty($imageIds)) {
-                        // TikTok requires image_ids as JSON array in query string
-                        $imageIdsJson = json_encode(array_values($imageIds));
-                        $url = "https://business-api.tiktok.com/open_api/v1.3/file/image/ad/info/?" . 
-                               "advertiser_id={$advertiser_id}&" .
-                               "image_ids=" . urlencode($imageIdsJson);
-                        
-                        logToFile("Fetching images with URL: " . $url);
-                        
-                        $ch = curl_init();
-                        curl_setopt_array($ch, [
-                            CURLOPT_URL => $url,
-                            CURLOPT_RETURNTRANSFER => true,
-                            CURLOPT_HTTPHEADER => [
-                                'Access-Token: ' . $accessToken
-                            ]
-                        ]);
-                        
-                        $result = curl_exec($ch);
-                        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                        curl_close($ch);
-                        
-                        logToFile("Image fetch HTTP Code: " . $httpCode);
-                        logToFile("Image fetch response: " . $result);
-                        
-                        if ($httpCode == 200) {
-                            $response = json_decode($result);
-                            
-                            if (isset($response->data->list)) {
-                                foreach ($response->data->list as $image) {
-                                    $images[] = [
-                                        'image_id' => $image->image_id,
-                                        'url' => $image->image_url ?? $image->url ?? '',
-                                        'file_name' => $image->file_name ?? $image->material_name ?? 'Image',
-                                        'width' => $image->width ?? null,
-                                        'height' => $image->height ?? null,
-                                        'format' => $image->format ?? null,
-                                        'type' => 'image'
-                                    ];
-                                }
-                            }
-                        }
-                    }
+                foreach ($advertiserImages as $img) {
+                    $images[] = [
+                        'image_id' => $img['image_id'],
+                        'url' => $img['url'] ?? '',
+                        'file_name' => $img['file_name'] ?? 'Image',
+                        'type' => 'image'
+                    ];
                 }
-                
-                // If no images from API, use stored data with URLs
-                if (empty($images)) {
-                    foreach ($advertiserImages as $img) {
-                        $images[] = [
-                            'image_id' => $img['image_id'],
-                            'url' => $img['url'] ?? '',
-                            'file_name' => $img['file_name'] ?? 'Image',
-                            'type' => 'image'
-                        ];
-                    }
-                }
-                
-                // Also try to fetch from Asset Library if available
-                // Note: This endpoint might require different permissions
-                $assetUrl = "https://business-api.tiktok.com/open_api/v1.3/creative/assets/get/?".
-                           "advertiser_id={$advertiser_id}&".
-                           "asset_type=IMAGE&".
-                           "page=1&page_size=100";
-                
-                $ch = curl_init();
-                curl_setopt_array($ch, [
-                    CURLOPT_URL => $assetUrl,
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_HTTPHEADER => [
-                        'Access-Token: ' . $accessToken
-                    ]
-                ]);
-                
-                $assetResult = curl_exec($ch);
-                $assetHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                curl_close($ch);
-                
-                logToFile("Asset Library HTTP Code: " . $assetHttpCode);
-                
-                if ($assetHttpCode == 200) {
-                    $assetResponse = json_decode($assetResult);
-                    logToFile("Asset Library Response: " . json_encode($assetResponse, JSON_PRETTY_PRINT));
-                    
-                    if (isset($assetResponse->data->list)) {
-                        foreach ($assetResponse->data->list as $asset) {
-                            // Check if this image is already in our list
-                            $exists = false;
-                            foreach ($images as $img) {
-                                if ($img['image_id'] == ($asset->asset_id ?? $asset->image_id)) {
-                                    $exists = true;
-                                    break;
-                                }
-                            }
-                            
-                            if (!$exists) {
-                                $images[] = [
-                                    'image_id' => $asset->asset_id ?? $asset->image_id ?? '',
-                                    'url' => $asset->asset_url ?? $asset->image_url ?? $asset->url ?? '',
-                                    'file_name' => $asset->asset_name ?? $asset->file_name ?? 'Asset Image',
-                                    'type' => 'image'
-                                ];
-                            }
-                        }
-                    }
-                }
-                
-            } catch (Exception $e) {
-                logToFile("Error fetching images: " . $e->getMessage());
             }
             
             logToFile("Total images found: " . count($images));
@@ -910,7 +894,7 @@ try {
             echo json_encode([
                 'success' => true,
                 'data' => ['list' => $images],
-                'message' => count($images) > 0 ? null : 'No images found. Please upload images to TikTok first.'
+                'message' => count($images) > 0 ? null : 'No images found in TikTok library. Please upload images first.'
             ]);
             break;
 
@@ -1213,21 +1197,23 @@ try {
             $syncedCount = 0;
             
             try {
-                // Fetch all images from TikTok
+                // Use the search endpoint to fetch all images from TikTok
                 $page = 1;
                 $pageSize = 100;
                 $hasMore = true;
                 
                 while ($hasMore && $page <= 20) {
-                    $url = "https://business-api.tiktok.com/open_api/v1.3/file/image/ad/info/?advertiser_id={$advertiser_id}&page={$page}&page_size={$pageSize}";
+                    $url = "https://business-api.tiktok.com/open_api/v1.3/file/image/ad/search/?" . 
+                           "advertiser_id={$advertiser_id}&" .
+                           "page={$page}&" .
+                           "page_size={$pageSize}";
                     
                     $ch = curl_init();
                     curl_setopt_array($ch, [
                         CURLOPT_URL => $url,
                         CURLOPT_RETURNTRANSFER => true,
                         CURLOPT_HTTPHEADER => [
-                            'Access-Token: ' . $accessToken,
-                            'Content-Type: application/json'
+                            'Access-Token: ' . $accessToken
                         ]
                     ]);
                     
@@ -1238,7 +1224,7 @@ try {
                     if ($httpCode == 200) {
                         $response = json_decode($result);
                         
-                        if (empty($response->code) && isset($response->data->list)) {
+                        if (isset($response->data->list) && is_array($response->data->list)) {
                             foreach ($response->data->list as $image) {
                                 $allImages[] = [
                                     'image_id' => $image->image_id,
@@ -1252,10 +1238,15 @@ try {
                                 $syncedCount++;
                             }
                             
-                            $totalNumber = $response->data->page_info->total_number ?? 0;
-                            $currentTotal = $page * $pageSize;
-                            $hasMore = $currentTotal < $totalNumber;
-                            $page++;
+                            // Check pagination
+                            if (isset($response->data->page_info)) {
+                                $totalPage = $response->data->page_info->total_page ?? 1;
+                                $currentPage = $response->data->page_info->page ?? $page;
+                                $hasMore = $currentPage < $totalPage;
+                                $page++;
+                            } else {
+                                $hasMore = false;
+                            }
                         } else {
                             $hasMore = false;
                         }
@@ -1269,7 +1260,7 @@ try {
                 echo json_encode([
                     'success' => true,
                     'data' => ['images' => $allImages, 'count' => $syncedCount],
-                    'message' => "Synced {$syncedCount} images from TikTok library"
+                    'message' => "Found {$syncedCount} images in TikTok library"
                 ]);
                 
             } catch (Exception $e) {
