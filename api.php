@@ -71,7 +71,7 @@ header('Content-Type: application/json');
 try {
     switch ($action) {
         case 'test_image_search':
-            // Direct test of image search API
+            // Direct test of image search API - matching TikTok docs exactly
             header('Content-Type: application/json');
             
             $url = "https://business-api.tiktok.com/open_api/v1.3/file/image/ad/search/?" . 
@@ -83,9 +83,14 @@ try {
             curl_setopt_array($ch, [
                 CURLOPT_URL => $url,
                 CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => "",
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => "GET",
                 CURLOPT_HTTPHEADER => [
-                    'Access-Token: ' . $accessToken,
-                    'Content-Type: application/json'
+                    "Access-Token: " . $accessToken
                 ]
             ]);
             
@@ -810,14 +815,14 @@ try {
             
             $images = [];
             
-            // Use the image search endpoint to get ALL images
+            // Use the image search endpoint to get ALL images - matching TikTok's exact format
             try {
                 $page = 1;
                 $pageSize = 100;
                 $hasMore = true;
                 
                 while ($hasMore && $page <= 10) { // Limit to 10 pages for safety
-                    // Use the search endpoint that doesn't require image_ids
+                    // Build URL exactly as TikTok documentation shows
                     $url = "https://business-api.tiktok.com/open_api/v1.3/file/image/ad/search/?" . 
                            "advertiser_id={$advertiser_id}&" .
                            "page={$page}&" .
@@ -829,17 +834,27 @@ try {
                     curl_setopt_array($ch, [
                         CURLOPT_URL => $url,
                         CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_ENCODING => "",
+                        CURLOPT_MAXREDIRS => 10,
+                        CURLOPT_TIMEOUT => 30,
+                        CURLOPT_FOLLOWLOCATION => true,
+                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                        CURLOPT_CUSTOMREQUEST => "GET",
                         CURLOPT_HTTPHEADER => [
-                            'Access-Token: ' . $accessToken,
-                            'Content-Type: application/json'
+                            "Access-Token: " . $accessToken
+                            // NO Content-Type header for GET requests per TikTok docs
                         ]
                     ]);
                     
                     $result = curl_exec($ch);
                     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    $curlError = curl_error($ch);
                     curl_close($ch);
                     
                     logToFile("Image search HTTP Code: " . $httpCode);
+                    if ($curlError) {
+                        logToFile("CURL Error: " . $curlError);
+                    }
                     
                     if ($httpCode == 200) {
                         $response = json_decode($result);
@@ -1249,9 +1264,14 @@ try {
                     curl_setopt_array($ch, [
                         CURLOPT_URL => $url,
                         CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_ENCODING => "",
+                        CURLOPT_MAXREDIRS => 10,
+                        CURLOPT_TIMEOUT => 30,
+                        CURLOPT_FOLLOWLOCATION => true,
+                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                        CURLOPT_CUSTOMREQUEST => "GET",
                         CURLOPT_HTTPHEADER => [
-                            'Access-Token: ' . $accessToken,
-                            'Content-Type: application/json'
+                            "Access-Token: " . $accessToken
                         ]
                     ]);
                     
