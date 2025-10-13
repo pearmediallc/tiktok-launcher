@@ -396,7 +396,15 @@ function addAdForm(index, duplicateFrom = null) {
     adCard.className = 'ad-card';
     adCard.id = `ad-${index}`;
 
-    const defaultCTAs = ['APPLY_NOW', 'SIGN_UP', 'LEARN_MORE', 'DOWNLOAD', 'SHOP_NOW', 'WATCH_NOW'];
+    const defaultCTAs = [
+        'APPLY_NOW', 'BOOK_NOW', 'CALL_NOW', 'CHECK_AVAILABLILITY', 'CONTACT_US',
+        'DOWNLOAD_NOW', 'EXPERIENCE_NOW', 'GET_QUOTE', 'GET_SHOWTIMES', 'GET_TICKETS_NOW',
+        'INSTALL_NOW', 'INTERESTED', 'LEARN_MORE', 'LISTEN_NOW', 'ORDER_NOW',
+        'PLAY_GAME', 'PREORDER_NOW', 'READ_MORE', 'SEND_MESSAGE', 'SHOP_NOW',
+        'SIGN_UP', 'SUBSCRIBE', 'VIEW_NOW', 'VIEW_PROFILE', 'VISIT_STORE',
+        'WATCH_LIVE', 'WATCH_NOW', 'JOIN_THIS_HASHTAG', 'SHOOT_WITH_THIS_EFFECT', 
+        'VIEW_VIDEO_WITH_THIS_EFFECT'
+    ];
 
     adCard.innerHTML = `
         <div class="ad-card-header">
@@ -451,7 +459,7 @@ function addAdForm(index, duplicateFrom = null) {
                     </div>
                 `).join('')}
             </div>
-            <input type="hidden" id="cta-${index}" value="APPLY_NOW">
+            <input type="hidden" id="cta-${index}" value="INTERESTED">
         </div>
 
         <div class="form-group">
@@ -472,8 +480,8 @@ function addAdForm(index, duplicateFrom = null) {
     // Populate identities
     populateIdentitiesForAd(index);
 
-    // Select first CTA by default
-    setTimeout(() => selectCTA(index, 'APPLY_NOW'), 100);
+    // Select INTERESTED as default CTA
+    setTimeout(() => selectCTA(index, 'INTERESTED'), 100);
 
     // If duplicating, copy values
     if (duplicateFrom !== null) {

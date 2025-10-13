@@ -70,6 +70,40 @@ header('Content-Type: application/json');
 
 try {
     switch ($action) {
+        case 'test_image_search':
+            // Direct test of image search API
+            header('Content-Type: application/json');
+            
+            $url = "https://business-api.tiktok.com/open_api/v1.3/file/image/ad/search/?" . 
+                   "advertiser_id={$advertiser_id}&" .
+                   "page=1&" .
+                   "page_size=10";
+            
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER => [
+                    'Access-Token: ' . $accessToken,
+                    'Content-Type: application/json'
+                ]
+            ]);
+            
+            $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            $response = json_decode($result);
+            
+            echo json_encode([
+                'success' => $httpCode == 200 && isset($response->data),
+                'http_code' => $httpCode,
+                'image_count' => isset($response->data->list) ? count($response->data->list) : 0,
+                'images' => $response->data->list ?? [],
+                'raw' => $response
+            ], JSON_PRETTY_PRINT);
+            exit;
+            
         case 'create_campaign':
             $campaign = new Campaign($config);
             $data = json_decode(file_get_contents('php://input'), true);
@@ -796,7 +830,8 @@ try {
                         CURLOPT_URL => $url,
                         CURLOPT_RETURNTRANSFER => true,
                         CURLOPT_HTTPHEADER => [
-                            'Access-Token: ' . $accessToken
+                            'Access-Token: ' . $accessToken,
+                            'Content-Type: application/json'
                         ]
                     ]);
                     
@@ -812,16 +847,18 @@ try {
                         
                         if (isset($response->data->list) && is_array($response->data->list)) {
                             foreach ($response->data->list as $image) {
+                                // Based on the Postman response, the structure is correct
                                 $images[] = [
                                     'image_id' => $image->image_id,
-                                    'url' => $image->image_url ?? $image->url ?? '',
-                                    'file_name' => $image->file_name ?? $image->material_name ?? $image->name ?? 'Image',
+                                    'url' => $image->image_url ?? '',  // image_url is the correct field
+                                    'file_name' => $image->file_name ?? $image->material_name ?? 'Image',
                                     'width' => $image->width ?? null,
                                     'height' => $image->height ?? null,
                                     'format' => $image->format ?? null,
                                     'size' => $image->size ?? null,
                                     'create_time' => $image->create_time ?? null,
                                     'modify_time' => $image->modify_time ?? null,
+                                    'displayable' => $image->displayable ?? true,
                                     'type' => 'image'
                                 ];
                             }
@@ -1213,7 +1250,8 @@ try {
                         CURLOPT_URL => $url,
                         CURLOPT_RETURNTRANSFER => true,
                         CURLOPT_HTTPHEADER => [
-                            'Access-Token: ' . $accessToken
+                            'Access-Token: ' . $accessToken,
+                            'Content-Type: application/json'
                         ]
                     ]);
                     
@@ -1228,11 +1266,12 @@ try {
                             foreach ($response->data->list as $image) {
                                 $allImages[] = [
                                     'image_id' => $image->image_id,
-                                    'url' => $image->image_url ?? $image->url ?? '',
-                                    'file_name' => $image->file_name ?? $image->material_name ?? 'Image ' . $image->image_id,
+                                    'url' => $image->image_url ?? '',  // image_url is the correct field
+                                    'file_name' => $image->file_name ?? $image->material_name ?? 'Image',
                                     'width' => $image->width ?? null,
                                     'height' => $image->height ?? null,
                                     'format' => $image->format ?? null,
+                                    'displayable' => $image->displayable ?? true,
                                     'type' => 'image'
                                 ];
                                 $syncedCount++;
