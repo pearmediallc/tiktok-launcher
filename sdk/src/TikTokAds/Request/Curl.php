@@ -105,6 +105,18 @@ class Curl {
      * @return array The curl response.
      */
     public function send( $request ) {
+        // Check if this is a file upload request
+        $hasFile = false;
+        $params = $request->getParams();
+        if (is_array($params)) {
+            foreach ($params as $param) {
+                if ($param instanceof \CURLFile) {
+                    $hasFile = true;
+                    break;
+                }
+            }
+        }
+
         $options = array( // curl options for the connection
             CURLOPT_URL => $request->getUrl(),
             CURLOPT_RETURNTRANSFER => true, // Return response as string
@@ -112,17 +124,30 @@ class Curl {
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_CUSTOMREQUEST => $request->getMethod(),
             CURLOPT_CAINFO => __DIR__ . '/certs/cacert.pem',
-            CURLOPT_HTTPHEADER => array(
-                'Content-Type: application/json'
-            ),
         );
+
+        // Set headers based on whether this is a file upload or not
+        if ($hasFile) {
+            // For file uploads, don't set Content-Type - let curl handle it for multipart
+            $options[CURLOPT_HTTPHEADER] = array();
+        } else {
+            $options[CURLOPT_HTTPHEADER] = array(
+                'Content-Type: application/json'
+            );
+        }
 
         if ( $request->getAccessToken() ) { // add access token to request
             $options[CURLOPT_HTTPHEADER][] = 'Access-Token: ' . $request->getAccessToken();
         }
 
-        if ( $request->getMethod() == Request::METHOD_POST ) { // need to add on post fields as json
-            $options[CURLOPT_POSTFIELDS] = json_encode( $request->getParams() );
+        if ( $request->getMethod() == Request::METHOD_POST ) { // need to add on post fields
+            if ($hasFile) {
+                // For file uploads, use the params directly (multipart/form-data)
+                $options[CURLOPT_POSTFIELDS] = $params;
+            } else {
+                // For regular requests, use JSON
+                $options[CURLOPT_POSTFIELDS] = json_encode( $request->getParams() );
+            }
         }
 
         // initialize curl
