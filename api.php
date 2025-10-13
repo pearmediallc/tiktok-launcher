@@ -435,6 +435,94 @@ try {
             ]);
             break;
 
+        case 'upload_thumbnail_as_cover':
+            // Upload video thumbnail URL as cover image to TikTok
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (empty($data['thumbnail_url']) || empty($data['video_id'])) {
+                throw new Exception('thumbnail_url and video_id are required');
+            }
+            
+            $thumbnailUrl = $data['thumbnail_url'];
+            $videoId = $data['video_id'];
+            
+            logToFile("============ THUMBNAIL UPLOAD REQUEST ============");
+            logToFile("Video ID: " . $videoId);
+            logToFile("Thumbnail URL: " . $thumbnailUrl);
+            
+            // Download thumbnail from URL
+            $tempFile = tempnam(sys_get_temp_dir(), 'thumbnail_');
+            $imageData = file_get_contents($thumbnailUrl);
+            
+            if ($imageData === false) {
+                throw new Exception('Failed to download thumbnail from URL: ' . $thumbnailUrl);
+            }
+            
+            file_put_contents($tempFile, $imageData);
+            
+            // Get image info for filename
+            $imageInfo = getimagesize($tempFile);
+            if (!$imageInfo) {
+                unlink($tempFile);
+                throw new Exception('Invalid image format');
+            }
+            
+            $mimeType = $imageInfo['mime'] ?? 'image/jpeg';
+            $extension = $mimeType === 'image/png' ? '.png' : '.jpg';
+            $fileName = 'video_' . $videoId . '_thumbnail' . $extension;
+            
+            $imageSignature = md5_file($tempFile);
+            
+            logToFile("Image signature: " . $imageSignature);
+            logToFile("File name: " . $fileName);
+            logToFile("MIME type: " . $mimeType);
+            
+            $file = new File($config);
+            
+            $params = [
+                'advertiser_id' => $advertiser_id,
+                'file_name' => $fileName,
+                'image_file' => new CURLFile($tempFile, $mimeType, $fileName),
+                'image_signature' => $imageSignature
+            ];
+            
+            $response = $file->uploadImage($params);
+            
+            // Clean up temp file
+            unlink($tempFile);
+            
+            logToFile("Thumbnail upload response: " . json_encode($response, JSON_PRETTY_PRINT));
+            
+            $success = empty($response->code) || $response->code == 0;
+            
+            if ($success && isset($response->data->image_id)) {
+                // Store in persistent storage
+                $storageFile = __DIR__ . '/media_storage.json';
+                $storage = json_decode(file_get_contents($storageFile), true) ?? ['images' => [], 'videos' => []];
+                
+                $storage['images'][] = [
+                    'image_id' => $response->data->image_id,
+                    'file_name' => $fileName,
+                    'upload_time' => time(),
+                    'url' => $response->data->url ?? $thumbnailUrl,
+                    'advertiser_id' => $advertiser_id,
+                    'source' => 'video_thumbnail',
+                    'video_id' => $videoId
+                ];
+                
+                file_put_contents($storageFile, json_encode($storage, JSON_PRETTY_PRINT));
+                
+                logToFile("Thumbnail uploaded successfully with ID: " . $response->data->image_id);
+            }
+            
+            echo json_encode([
+                'success' => $success,
+                'data' => $response->data ?? null,
+                'message' => $success ? 'Video thumbnail uploaded as cover image' : ($response->message ?? 'Upload failed'),
+                'code' => $response->code ?? null
+            ]);
+            break;
+            
         case 'upload_image':
             $file = new File($config);
 

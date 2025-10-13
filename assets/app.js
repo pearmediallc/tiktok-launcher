@@ -431,8 +431,18 @@ function addAdForm(index, duplicateFrom = null) {
 
         <div class="form-group" id="cover-image-group-${index}" style="display: none;">
             <label>Cover Image (Required for Video Ads)</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <button type="button" class="btn-secondary" onclick="useVideoThumbnail(${index})" 
+                        id="use-thumbnail-btn-${index}" style="flex: 1;">
+                    🎬 Use Video Thumbnail
+                </button>
+                <button type="button" class="btn-secondary" onclick="openMediaModal(${index}, 'cover')" 
+                        style="flex: 1;">
+                    🖼️ Choose Different Image
+                </button>
+            </div>
             <div class="creative-placeholder" onclick="openMediaModal(${index}, 'cover')" style="border-color: #667eea;">
-                <span id="cover-placeholder-${index}">Click to select cover image</span>
+                <span id="cover-placeholder-${index}">Select cover image above</span>
             </div>
             <img id="cover-preview-${index}" class="creative-preview" style="display: none;">
             <input type="hidden" id="cover-image-id-${index}">
@@ -775,6 +785,86 @@ async function loadMediaLibrary() {
     }
 }
 
+// Use video thumbnail as cover image
+async function useVideoThumbnail(adIndex) {
+    const creativeId = document.getElementById(`creative-id-${adIndex}`).value;
+    const creativeType = document.getElementById(`creative-type-${adIndex}`).value;
+    
+    if (creativeType !== 'video' || !creativeId) {
+        showToast('Please select a video first', 'error');
+        return;
+    }
+    
+    // Find the video data to get thumbnail URL
+    let videoData = null;
+    
+    // Check if we have stored video data
+    if (state.selectedVideoData && state.selectedVideoData[creativeId]) {
+        videoData = state.selectedVideoData[creativeId];
+    } else {
+        // Try to find from current media library (if loaded)
+        showToast('Loading video information...', 'info');
+        
+        try {
+            const response = await apiRequest('get_videos', {}, 'GET');
+            if (response.success && response.data && response.data.list) {
+                const video = response.data.list.find(v => v.video_id === creativeId);
+                if (video) {
+                    videoData = video;
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching video data:', error);
+        }
+    }
+    
+    if (!videoData || !videoData.video_cover_url) {
+        showToast('No thumbnail available for this video', 'error');
+        return;
+    }
+    
+    showLoading('Uploading video thumbnail to TikTok...');
+    
+    try {
+        const response = await apiRequest('upload_thumbnail_as_cover', {
+            video_id: creativeId,
+            thumbnail_url: videoData.video_cover_url
+        });
+        
+        if (response.success && response.data && response.data.image_id) {
+            const imageId = response.data.image_id;
+            
+            // Set the cover image ID
+            document.getElementById(`cover-image-id-${adIndex}`).value = imageId;
+            
+            // Update the UI
+            const coverPlaceholder = document.getElementById(`cover-placeholder-${adIndex}`);
+            const coverContainer = coverPlaceholder.parentElement;
+            
+            coverContainer.classList.add('has-media');
+            coverContainer.style.backgroundImage = `url(${videoData.video_cover_url})`;
+            coverContainer.style.backgroundSize = 'cover';
+            coverContainer.style.backgroundPosition = 'center';
+            
+            coverPlaceholder.innerHTML = `
+                <div class="media-selected-info">
+                    <div class="media-type-badge">🎬</div>
+                    <div class="media-name">Video Thumbnail</div>
+                    <div class="media-id" style="font-size: 11px;">ID: ${imageId}</div>
+                </div>`;
+            
+            showToast('Video thumbnail uploaded and set as cover image!', 'success');
+        } else {
+            showToast(response.message || 'Failed to upload thumbnail', 'error');
+        }
+    } catch (error) {
+        console.error('Error uploading thumbnail:', error);
+        showToast('Error uploading thumbnail: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
 // Use manually entered image ID
 function useManualImageId() {
     const imageIdInput = document.getElementById('manual-image-id');
@@ -1055,6 +1145,14 @@ function confirmMediaSelection() {
 
         document.getElementById(`creative-id-${adIndex}`).value = mediaId;
         document.getElementById(`creative-type-${adIndex}`).value = selectedMedia.type;
+
+        // Store video data for thumbnail access
+        if (selectedMedia.type === 'video') {
+            if (!state.selectedVideoData) {
+                state.selectedVideoData = {};
+            }
+            state.selectedVideoData[mediaId] = selectedMedia;
+        }
 
         // Update primary media placeholder
         const placeholder = document.getElementById(`creative-placeholder-${adIndex}`);
