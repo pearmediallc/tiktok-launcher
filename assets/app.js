@@ -414,7 +414,11 @@ function addAdForm(index, duplicateFrom = null) {
         <div class="form-group">
             <label>Creative (Image or Video)</label>
             <div class="creative-placeholder" onclick="openMediaModal(${index})">
-                <span id="creative-placeholder-${index}">Click to select media</span>
+                <span id="creative-placeholder-${index}">Click to select media (Video + Cover Image for video ads)</span>
+            </div>
+            <div id="media-info-${index}" style="display: none; margin-top: 10px; padding: 10px; background: #f0f8ff; border-radius: 5px; font-size: 13px;">
+                <div id="primary-media-${index}"></div>
+                <div id="cover-media-${index}" style="margin-top: 5px; color: #667eea;"></div>
             </div>
             <img id="creative-preview-${index}" class="creative-preview" style="display: none;">
             <input type="hidden" id="creative-id-${index}">
