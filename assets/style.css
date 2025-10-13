@@ -613,6 +613,20 @@ h3 {
     text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
 }
 
+/* Video preview styles */
+.video-no-preview {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-no-preview::after {
+    content: '🎬';
+    font-size: 40px;
+    color: white;
+}
+
 .upload-area {
     border: 2px dashed #ccc;
     border-radius: 8px;

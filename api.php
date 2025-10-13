@@ -316,20 +316,43 @@ try {
             $data = json_decode(file_get_contents('php://input'), true);
 
             // TikTok API expects creatives array structure
+            // According to docs: identity_type and identity_id are REQUIRED
+            
+            // Validate that identity_id is provided
+            if (empty($data['identity_id'])) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Identity is required for ad creation. Please select an identity or create one in TikTok Ads Manager.',
+                    'code' => 40001
+                ]);
+                exit;
+            }
+            
             $creative = [
                 'ad_name' => $data['ad_name'],
                 'ad_format' => $data['ad_format'] ?? 'SINGLE_VIDEO',
                 'ad_text' => $data['ad_text'],
                 'call_to_action' => $data['call_to_action'] ?? 'APPLY_NOW',
                 'landing_page_url' => $data['landing_page_url'],
-                'identity_id' => $data['identity_id'],
-                'identity_type' => 'CUSTOMIZED_USER'
+                'identity_type' => $data['identity_type'] ?? 'CUSTOMIZED_USER',
+                'identity_id' => $data['identity_id']
             ];
 
-            // Add video_id or image_ids based on format
-            if ($data['ad_format'] === 'SINGLE_VIDEO' && !empty($data['video_id'])) {
-                $creative['video_id'] = $data['video_id'];
-            } elseif (!empty($data['image_ids'])) {
+            // Add video_id and/or image_ids based on format
+            if ($data['ad_format'] === 'SINGLE_VIDEO') {
+                if (!empty($data['video_id'])) {
+                    $creative['video_id'] = $data['video_id'];
+                }
+                // For video ads, image_ids is required as the video cover (thumbnail)
+                // If not provided, use a default placeholder or generate one
+                if (!empty($data['image_ids'])) {
+                    $creative['image_ids'] = is_array($data['image_ids']) ? $data['image_ids'] : [$data['image_ids']];
+                } else {
+                    // You should upload a default image to TikTok and use its ID here
+                    // For now, we'll require the frontend to provide it
+                    logToFile("Warning: No image_ids provided for video ad - this may cause the ad creation to fail");
+                }
+            } elseif ($data['ad_format'] === 'SINGLE_IMAGE' && !empty($data['image_ids'])) {
                 $creative['image_ids'] = is_array($data['image_ids']) ? $data['image_ids'] : [$data['image_ids']];
             }
 
@@ -345,11 +368,31 @@ try {
 
             logToFile("Create Ad Response: " . json_encode($response, JSON_PRETTY_PRINT));
 
+            // Check for success
+            $isSuccess = (empty($response->code) || $response->code == 0) && isset($response->data);
+            
+            // Get error details if failed
+            $errorMessage = 'Ad created successfully';
+            if (!$isSuccess) {
+                $errorMessage = $response->message ?? 'Unknown error occurred';
+                if (isset($response->errors) && is_array($response->errors)) {
+                    $errorDetails = [];
+                    foreach ($response->errors as $error) {
+                        $errorDetails[] = $error->field . ': ' . $error->message;
+                    }
+                    $errorMessage .= ' - ' . implode(', ', $errorDetails);
+                }
+            }
+
             echo json_encode([
-                'success' => empty($response->code) || $response->code == 0,
+                'success' => $isSuccess,
                 'data' => $response->data ?? null,
-                'message' => $response->message ?? 'Ad created successfully',
-                'code' => $response->code ?? null
+                'message' => $isSuccess ? 'Ad created successfully' : $errorMessage,
+                'code' => $response->code ?? null,
+                'debug' => [
+                    'request' => $params,
+                    'response' => $response
+                ]
             ]);
             break;
 
@@ -837,19 +880,58 @@ try {
                             'video_ids' => $video_ids
                         ];
                         
+                        // Try using the SDK first
                         $response = $file->getVideoInfo($params);
-                        logToFile("Get Video Info Response: " . json_encode($response, JSON_PRETTY_PRINT));
+                        logToFile("Get Video Info SDK Response: " . json_encode($response, JSON_PRETTY_PRINT));
+                        
+                        // If SDK fails, try direct API call
+                        if (!empty($response->code) && $response->code != 0) {
+                            logToFile("SDK failed, trying direct API call...");
+                            
+                            $url = 'https://business-api.tiktok.com/open_api/v1.3/file/video/ad/info/';
+                            $queryParams = [
+                                'advertiser_id' => $advertiser_id,
+                                'video_ids' => json_encode($video_ids)
+                            ];
+                            
+                            $ch = curl_init($url . '?' . http_build_query($queryParams));
+                            curl_setopt_array($ch, [
+                                CURLOPT_RETURNTRANSFER => true,
+                                CURLOPT_HTTPHEADER => [
+                                    'Access-Token: ' . $accessToken
+                                ]
+                            ]);
+                            
+                            $result = curl_exec($ch);
+                            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                            curl_close($ch);
+                            
+                            logToFile("Direct API HTTP Code: " . $httpCode);
+                            logToFile("Direct API Response: " . $result);
+                            
+                            if ($httpCode == 200) {
+                                $response = json_decode($result);
+                            }
+                        }
                         
                         // Check if we got valid response or permission errors
                         if (!empty($response->code) && $response->code == 40001) {
                             // Permission error - just use stored data
                             logToFile("Permission error for videos, using stored data");
                             foreach ($advertiserVideos as $vid) {
+                                // Try to generate a thumbnail URL if we have the video ID
+                                // Some TikTok videos might have predictable thumbnail URLs
+                                $fallbackThumbnail = '';
+                                
                                 $videos[] = [
                                     'video_id' => $vid['video_id'],
                                     'file_name' => $vid['file_name'] ?? 'Video',
                                     'duration' => $vid['duration'] ?? null,
-                                    'type' => 'video'
+                                    'size' => $vid['size'] ?? null,
+                                    'type' => 'video',
+                                    'preview_url' => $fallbackThumbnail,
+                                    'thumbnail_url' => $fallbackThumbnail,
+                                    'has_thumbnail' => false
                                 ];
                             }
                         } elseif (empty($response->code) && isset($response->data->list)) {
@@ -863,15 +945,25 @@ try {
                                     }
                                 }
                                 
+                                // Extract all possible thumbnail URLs
+                                $thumbnailUrl = $video->poster_url ?? 
+                                               $video->cover_image_url ?? 
+                                               $video->cover_url ?? 
+                                               $video->thumbnail_url ?? 
+                                               $video->preview_url ?? '';
+                                
                                 $videos[] = [
                                     'video_id' => $video->video_id,
-                                    'url' => $video->video_url ?? $video->preview_url ?? '',
-                                    'preview_url' => $video->preview_url ?? $video->cover_url ?? '',
+                                    'url' => $video->video_url ?? '',
+                                    'preview_url' => $thumbnailUrl,
+                                    'poster_url' => $thumbnailUrl,
+                                    'thumbnail_url' => $thumbnailUrl,
                                     'file_name' => $originalData['file_name'] ?? $video->file_name ?? $video->video_name ?? 'Video',
-                                    'duration' => $video->duration ?? null,
+                                    'duration' => $video->duration ?? $originalData['duration'] ?? null,
                                     'width' => $video->width ?? null,
                                     'height' => $video->height ?? null,
-                                    'type' => 'video'
+                                    'type' => 'video',
+                                    'has_thumbnail' => !empty($thumbnailUrl)
                                 ];
                             }
                         } else {

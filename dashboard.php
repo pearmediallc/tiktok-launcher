@@ -258,7 +258,7 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
         <div id="media-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Select Media</h3>
+                    <h3>Select Media <span id="selection-counter" style="font-size: 14px; color: #667eea; margin-left: 10px; display: none;"></span></h3>
                     <span class="modal-close" onclick="closeMediaModal()">&times;</span>
                 </div>
                 <div class="modal-tabs">

@@ -6,8 +6,9 @@ let state = {
     ads: [],
     identities: [],
     mediaLibrary: [],
-    selectedMedia: null,
-    currentAdIndex: null
+    selectedMedia: [],
+    currentAdIndex: null,
+    mediaSelectionMode: 'multiple' // Allow multiple selection
 };
 
 // API Logger Functions
@@ -538,19 +539,20 @@ function selectCTA(adIndex, cta) {
 // Media modal
 function openMediaModal(adIndex) {
     state.currentAdIndex = adIndex;
-    state.selectedMedia = null;
+    state.selectedMedia = []; // Reset to empty array for multiple selection
 
     const modal = document.getElementById('media-modal');
     modal.classList.add('show');
 
     loadMediaLibrary();
+    updateSelectionCounter(); // Update counter on open
 }
 
 function closeMediaModal() {
     const modal = document.getElementById('media-modal');
     modal.classList.remove('show');
     state.currentAdIndex = null;
-    state.selectedMedia = null;
+    state.selectedMedia = [];
 }
 
 function switchMediaTab(tab, evt) {
@@ -683,36 +685,63 @@ function renderMediaGrid() {
             }
         } else {
             // For videos, show preview image or placeholder
-            const previewUrl = media.preview_url || media.cover_url;
+            const previewUrl = media.preview_url || media.thumbnail_url || media.poster_url || media.cover_url;
             const videoUrl = media.url || media.video_url;
             
-            if (previewUrl) {
+            if (previewUrl && previewUrl !== '') {
                 item.innerHTML = `
-                    <img src="${previewUrl}" 
-                         alt="Video: ${media.file_name || media.video_id}" 
-                         style="width: 100%; height: 100%; object-fit: cover;">
-                    <div class="media-info">
-                        <span class="media-type-icon">▶️</span>
-                        <span class="media-id">${media.video_id}</span>
-                        <span class="media-name">${media.file_name || 'Video'}</span>
-                        ${media.duration ? `<span class="media-duration">${Math.round(media.duration)}s</span>` : ''}
+                    <div style="position: relative; width: 100%; height: 150px; background: linear-gradient(135deg, #667eea, #764ba2);">
+                        <img src="${previewUrl}" 
+                             alt="Video: ${media.file_name || media.video_id}" 
+                             style="width: 100%; height: 100%; object-fit: cover;"
+                             onerror="this.style.display='none';">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                                    background: rgba(0,0,0,0.6); border-radius: 50%; width: 40px; height: 40px; 
+                                    display: flex; align-items: center; justify-content: center;">
+                            <span style="color: white; font-size: 18px; margin-left: 2px;">▶</span>
+                        </div>
+                        <div style="position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.7); 
+                                    padding: 2px 6px; border-radius: 3px; font-size: 10px; color: white;">
+                            ${media.duration ? `${Math.round(media.duration)}s` : 'Video'}
+                        </div>
+                    </div>
+                    <div class="media-info" style="padding: 5px; background: rgba(0,0,0,0.05);">
+                        <div style="font-weight: 600; font-size: 12px;">${media.file_name || 'Video'}</div>
+                        <div style="font-size: 9px; opacity: 0.7; margin-top: 2px;">ID: ${media.video_id}</div>
                     </div>`;
             } else if (videoUrl) {
                 item.innerHTML = `
-                    <video src="${videoUrl}" 
-                           style="width: 100%; height: 100%; object-fit: cover;"
-                           muted></video>
+                    <div style="position: relative; width: 100%; height: 150px; background: #000;">
+                        <video src="${videoUrl}" 
+                               style="width: 100%; height: 100%; object-fit: cover;"
+                               muted
+                               onloadedmetadata="this.currentTime=1"
+                               onerror="this.style.display='none'; this.parentElement.classList.add('video-no-preview');"></video>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                                    background: rgba(0,0,0,0.6); border-radius: 50%; width: 40px; height: 40px; 
+                                    display: flex; align-items: center; justify-content: center;">
+                            <span style="color: white; font-size: 18px; margin-left: 2px;">▶</span>
+                        </div>
+                    </div>
                     <div class="media-info">
-                        <span class="media-type-icon">▶️</span>
-                        <span class="media-id">${media.video_id}</span>
+                        <span class="media-id" style="font-size: 9px;">${media.video_id}</span>
                         <span class="media-name">${media.file_name || 'Video'}</span>
+                        ${media.duration ? `<span class="media-duration">${Math.round(media.duration)}s</span>` : ''}
                     </div>`;
             } else {
+                // Fallback display for videos without thumbnails
                 item.innerHTML = `
-                    <div style="padding: 20px; text-align: center; color: #999;">
-                        <div>🎥</div>
-                        <div>Video ID: ${media.video_id}</div>
-                        <div>${media.file_name || 'No preview'}</div>
+                    <div style="width: 100%; height: 150px; background: linear-gradient(135deg, #667eea, #764ba2); 
+                                display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; position: relative;">
+                        <div style="font-size: 40px; margin-bottom: 5px;">🎬</div>
+                        <div style="font-size: 12px; font-weight: 600;">${media.file_name || 'Video'}</div>
+                        ${media.duration ? `<div style="position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.5); 
+                                                        padding: 2px 6px; border-radius: 3px; font-size: 10px;">
+                            ${Math.round(media.duration)}s</div>` : ''}
+                    </div>
+                    <div class="media-info" style="padding: 5px; background: rgba(0,0,0,0.05);">
+                        <div style="font-weight: 600; font-size: 12px;">${media.file_name || 'Video'}</div>
+                        <div style="font-size: 9px; opacity: 0.7; margin-top: 2px; word-break: break-all;">ID: ${media.video_id}</div>
                     </div>`;
             }
         }
@@ -727,25 +756,56 @@ function renderMediaGrid() {
 
 // Select media from library
 function selectMedia(media) {
-    state.selectedMedia = media;
-
+    const mediaId = media.video_id || media.image_id || media.id;
+    
+    // Multiple selection mode - toggle selection
+    const existingIndex = state.selectedMedia.findIndex(m => 
+        (m.video_id || m.image_id || m.id) === mediaId
+    );
+    
+    if (existingIndex >= 0) {
+        // Remove if already selected
+        state.selectedMedia.splice(existingIndex, 1);
+    } else {
+        // Add to selection
+        state.selectedMedia.push(media);
+    }
+    
     // Update UI
-    document.querySelectorAll('.media-item').forEach(item => item.classList.remove('selected'));
-    const selectedItem = document.querySelector(`.media-item[data-id="${media.id || media.video_id || media.image_id}"]`);
-    if (selectedItem) {
-        selectedItem.classList.add('selected');
+    document.querySelectorAll('.media-item').forEach(item => {
+        const itemId = item.dataset.id;
+        const isSelected = state.selectedMedia.some(m => 
+            (m.video_id || m.image_id || m.id) === itemId
+        );
+        item.classList.toggle('selected', isSelected);
+    });
+    
+    // Update selection counter
+    updateSelectionCounter();
+}
+
+// Update selection counter in modal
+function updateSelectionCounter() {
+    const counter = document.getElementById('selection-counter');
+    if (counter) {
+        const count = state.selectedMedia.length;
+        counter.textContent = count > 0 ? `${count} selected` : '';
+        counter.style.display = count > 0 ? 'inline' : 'none';
     }
 }
 
 // Confirm media selection
 function confirmMediaSelection() {
-    if (!state.selectedMedia) {
-        showToast('Please select a media file', 'error');
+    if (!state.selectedMedia || state.selectedMedia.length === 0) {
+        showToast('Please select at least one media file', 'error');
         return;
     }
 
     const adIndex = state.currentAdIndex;
-    const media = state.selectedMedia;
+    const selectedMediaList = state.selectedMedia;
+    
+    // For now, use the first selected media (can be extended for carousel ads)
+    const media = selectedMediaList[0];
 
     // Update ad form with the correct ID
     const mediaId = media.video_id || media.image_id || media.id;
@@ -778,9 +838,11 @@ function confirmMediaSelection() {
             </div>`;
     } else {
         // For video, show thumbnail or video icon
-        const previewUrl = media.preview_url || media.cover_url;
+        const previewUrl = media.preview_url || media.thumbnail_url || media.poster_url || media.cover_url;
         if (previewUrl) {
             placeholderContainer.style.backgroundImage = `url(${previewUrl})`;
+            placeholderContainer.style.backgroundSize = 'cover';
+            placeholderContainer.style.backgroundPosition = 'center';
         } else {
             placeholderContainer.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
         }
@@ -792,7 +854,7 @@ function confirmMediaSelection() {
             <div class="media-selected-info">
                 <div class="media-type-badge">🎥</div>
                 <div class="media-name">${fileName}</div>
-                ${duration ? `<div style="font-size: 11px; opacity: 0.9;">${duration}</div>` : ''}
+                ${duration ? `<div style="font-size: 11px; opacity: 0.9;">⏱ ${duration}</div>` : ''}
                 <div class="media-id">ID: ${media.video_id}</div>
             </div>`;
     }
@@ -945,13 +1007,17 @@ function populateIdentitiesForAd(adIndex) {
         state.identities.forEach(identity => {
             const option = document.createElement('option');
             option.value = identity.identity_id;
+            option.setAttribute('data-identity-type', identity.identity_type || 'CUSTOMIZED_USER');
+            
             // Show both identity name and display name if different
             const name = identity.identity_name || identity.display_name || 'Custom Identity';
             const displayName = identity.display_name || '';
+            const typeLabel = identity.identity_type === 'TT_USER' ? ' (TikTok)' : ' (Custom)';
+            
             if (displayName && displayName !== name) {
-                option.textContent = `${name} (${displayName})`;
+                option.textContent = `${name} (${displayName})${typeLabel}`;
             } else {
-                option.textContent = name;
+                option.textContent = name + typeLabel;
             }
             select.appendChild(option);
         });
@@ -984,20 +1050,64 @@ function populateIdentitiesForAd(adIndex) {
 
 // Review ads before publishing
 function reviewAds() {
+    console.log('Review Ads clicked - Validating ads...');
+    console.log('Current state.ads:', state.ads);
+    
+    // Check if we have any ads
+    if (state.ads.length === 0) {
+        showToast('Please add at least one ad before continuing', 'error');
+        return;
+    }
+    
     // Validate all ads
     let allValid = true;
 
     for (let i = 0; i < state.ads.length; i++) {
         const adIndex = state.ads[i].index;
+        console.log(`Validating ad index ${adIndex}`);
 
-        const adName = document.getElementById(`ad-name-${adIndex}`).value.trim();
-        const adText = document.getElementById(`ad-text-${adIndex}`).value.trim();
-        const creativeId = document.getElementById(`creative-id-${adIndex}`).value;
-        const identityId = document.getElementById(`identity-${adIndex}`).value;
-        const destinationUrl = document.getElementById(`destination-url-${adIndex}`).value.trim();
+        const adNameEl = document.getElementById(`ad-name-${adIndex}`);
+        const adTextEl = document.getElementById(`ad-text-${adIndex}`);
+        const creativeIdEl = document.getElementById(`creative-id-${adIndex}`);
+        const identityEl = document.getElementById(`identity-${adIndex}`);
+        const destinationUrlEl = document.getElementById(`destination-url-${adIndex}`);
+        
+        if (!adNameEl || !adTextEl || !creativeIdEl || !destinationUrlEl) {
+            console.error(`Missing form elements for ad ${adIndex}`);
+            showToast(`Error: Missing form elements for Ad #${adIndex + 1}`, 'error');
+            allValid = false;
+            break;
+        }
+        
+        const adName = adNameEl.value.trim();
+        const adText = adTextEl.value.trim();
+        const creativeId = creativeIdEl.value;
+        const identityId = identityEl ? identityEl.value : '';
+        const destinationUrl = destinationUrlEl.value.trim();
 
-        if (!adName || !adText || !creativeId || !identityId || !destinationUrl) {
-            showToast(`Please complete all fields for Ad #${adIndex + 1}`, 'error');
+        if (!adName) {
+            showToast(`Please enter ad name for Ad #${adIndex + 1}`, 'error');
+            allValid = false;
+            break;
+        }
+        if (!adText) {
+            showToast(`Please enter ad copy for Ad #${adIndex + 1}`, 'error');
+            allValid = false;
+            break;
+        }
+        if (!creativeId) {
+            showToast(`Please select media for Ad #${adIndex + 1}`, 'error');
+            allValid = false;
+            break;
+        }
+        if (!destinationUrl) {
+            showToast(`Please enter destination URL for Ad #${adIndex + 1}`, 'error');
+            allValid = false;
+            break;
+        }
+        // Identity is REQUIRED according to TikTok API docs
+        if (!identityId) {
+            showToast(`Please select an identity for Ad #${adIndex + 1}. Identity is required for ad creation.`, 'error');
             allValid = false;
             break;
         }
@@ -1073,13 +1183,19 @@ async function publishAll() {
         for (let i = 0; i < state.ads.length; i++) {
             const adIndex = state.ads[i].index;
 
+            const identitySelect = document.getElementById(`identity-${adIndex}`);
+            const selectedIdentity = identitySelect.value;
+            const selectedOption = identitySelect.options[identitySelect.selectedIndex];
+            const identityType = selectedOption ? selectedOption.getAttribute('data-identity-type') : 'CUSTOMIZED_USER';
+            
             const adData = {
                 adgroup_id: state.adGroupId,
                 ad_name: document.getElementById(`ad-name-${adIndex}`).value,
                 ad_text: document.getElementById(`ad-text-${adIndex}`).value,
                 call_to_action: document.getElementById(`cta-${adIndex}`).value,
                 landing_page_url: document.getElementById(`destination-url-${adIndex}`).value,
-                identity_id: document.getElementById(`identity-${adIndex}`).value
+                identity_id: selectedIdentity,
+                identity_type: identityType || 'CUSTOMIZED_USER'
             };
 
             const creativeType = document.getElementById(`creative-type-${adIndex}`).value;
@@ -1093,12 +1209,16 @@ async function publishAll() {
                 adData.ad_format = 'SINGLE_IMAGE';
             }
 
+            console.log(`Creating ad ${i+1}/${state.ads.length}:`, adData);
             const response = await apiRequest('create_ad', adData);
+            console.log(`Ad creation response:`, response);
 
             if (response.success && response.data && response.data.ad_id) {
                 createdAdIds.push(response.data.ad_id);
+                showToast(`Ad ${i+1} created successfully`, 'success');
             } else {
-                throw new Error(`Failed to create ad: ${response.message}`);
+                console.error('Ad creation failed:', response);
+                throw new Error(`Failed to create ad ${i+1}: ${response.message || 'Unknown error'}`);
             }
         }
 

@@ -109,6 +109,17 @@ class File extends TikTokAds {
      * @return response.
      */
     public function getVideoInfo( $params ) {
+        // Video IDs need to be passed as array in query string
+        if (isset($params['video_ids']) && is_array($params['video_ids'])) {
+            $queryParams = [
+                'advertiser_id' => $params['advertiser_id'],
+                'video_ids' => json_encode($params['video_ids'])
+            ];
+            return $this->get( array( // make request
+                'endpoint' => '/' . self::ENDPOINT . '/video/ad/info/',
+                'params' => $queryParams
+            ) );
+        }
         return $this->get( array( // make request
             'endpoint' => '/' . self::ENDPOINT . '/video/ad/info/',
             'params' => $params
