@@ -1514,7 +1514,6 @@ function generateReviewSummary() {
         <p><strong>Ad Group Name:</strong> ${document.getElementById('adgroup-name').value}</p>
         <p><strong>Daily Budget:</strong> $${document.getElementById('budget').value}</p>
         <p><strong>Start Date:</strong> ${startDate.toLocaleString()}</p>
-        <p><strong>Timezone:</strong> ${document.getElementById('timezone').options[document.getElementById('timezone').selectedIndex].text}</p>
         <p><strong>Bid Price:</strong> $${document.getElementById('bid-price').value}</p>
         <p><strong>Location:</strong> United States</p>
         <p><strong>Placement:</strong> TikTok</p>
@@ -1607,8 +1606,8 @@ async function publishAll() {
             const response = await apiRequest('create_ad', adData);
             console.log(`Ad creation response:`, response);
 
-            if (response.success && response.data && response.data.ad_id) {
-                createdAdIds.push(response.data.ad_id);
+            if (response.success && response.data && response.data.ad_ids && response.data.ad_ids.length > 0) {
+                createdAdIds.push(...response.data.ad_ids);
                 showToast(`Ad ${i+1} created successfully`, 'success');
             } else {
                 console.error('Ad creation failed:', response);

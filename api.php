@@ -469,7 +469,8 @@ try {
             
             $mimeType = $imageInfo['mime'] ?? 'image/jpeg';
             $extension = $mimeType === 'image/png' ? '.png' : '.jpg';
-            $fileName = 'video_' . $videoId . '_thumbnail' . $extension;
+            // Add timestamp to make filename unique and avoid duplicate material errors
+            $fileName = 'video_' . substr($videoId, -8) . '_thumb_' . time() . '_' . rand(1000, 9999) . $extension;
             
             $imageSignature = md5_file($tempFile);
             
