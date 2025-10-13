@@ -772,85 +772,100 @@ try {
             break;
 
         case 'get_images':
-            $file = new File($config);
             logToFile("Get Images - Advertiser ID: " . $advertiser_id);
             
             $images = [];
             
-            // Read from persistent storage
-            $storageFile = __DIR__ . '/media_storage.json';
-            $storage = json_decode(file_get_contents($storageFile), true) ?? ['images' => [], 'videos' => []];
-            
-            // Filter images for current advertiser
-            $advertiserImages = array_filter($storage['images'] ?? [], function($img) use ($advertiser_id) {
-                return $img['advertiser_id'] === $advertiser_id;
-            });
-            
-            if (!empty($advertiserImages)) {
-                // Get image details from TikTok for each stored ID
-                $image_ids = array_column($advertiserImages, 'image_id');
+            // First, try to fetch ALL images from TikTok library directly
+            // We'll use pagination to get all images
+            try {
+                $page = 1;
+                $pageSize = 100;
+                $hasMore = true;
                 
-                if (!empty($image_ids)) {
-                    try {
-                        $params = [
-                            'advertiser_id' => $advertiser_id,
-                            'image_ids' => $image_ids
-                        ];
-                        
-                        $response = $file->getImageInfo($params);
-                        logToFile("Get Image Info Response: " . json_encode($response, JSON_PRETTY_PRINT));
+                while ($hasMore && $page <= 10) { // Limit to 10 pages for safety
+                    // Direct API call to get all images from TikTok
+                    $url = "https://business-api.tiktok.com/open_api/v1.3/file/image/ad/info/?advertiser_id={$advertiser_id}&page={$page}&page_size={$pageSize}";
+                    
+                    $ch = curl_init();
+                    curl_setopt_array($ch, [
+                        CURLOPT_URL => $url,
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_HTTPHEADER => [
+                            'Access-Token: ' . $accessToken,
+                            'Content-Type: application/json'
+                        ]
+                    ]);
+                    
+                    $result = curl_exec($ch);
+                    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+                    
+                    logToFile("Get Images Page {$page} - HTTP Code: " . $httpCode);
+                    
+                    if ($httpCode == 200) {
+                        $response = json_decode($result);
+                        logToFile("Get Images Response Page {$page}: " . json_encode($response, JSON_PRETTY_PRINT));
                         
                         if (empty($response->code) && isset($response->data->list)) {
                             foreach ($response->data->list as $image) {
-                                // Find original filename from storage
-                                $originalData = null;
-                                foreach ($advertiserImages as $stored) {
-                                    if ($stored['image_id'] == $image->image_id) {
-                                        $originalData = $stored;
-                                        break;
-                                    }
-                                }
-                                
                                 $images[] = [
                                     'image_id' => $image->image_id,
-                                    'url' => $image->image_url ?? $image->url ?? $originalData['url'] ?? '',
-                                    'file_name' => $originalData['file_name'] ?? $image->file_name ?? $image->material_name ?? 'Image',
+                                    'url' => $image->image_url ?? $image->url ?? '',
+                                    'file_name' => $image->file_name ?? $image->material_name ?? 'Image',
                                     'width' => $image->width ?? null,
                                     'height' => $image->height ?? null,
                                     'format' => $image->format ?? null,
+                                    'size' => $image->size ?? null,
+                                    'create_time' => $image->create_time ?? null,
+                                    'modify_time' => $image->modify_time ?? null,
                                     'type' => 'image'
                                 ];
                             }
+                            
+                            // Check if there are more pages
+                            $totalNumber = $response->data->page_info->total_number ?? 0;
+                            $currentTotal = $page * $pageSize;
+                            $hasMore = $currentTotal < $totalNumber;
+                            $page++;
                         } else {
-                            // If TikTok API fails, use stored data
-                            foreach ($advertiserImages as $img) {
-                                $images[] = [
-                                    'image_id' => $img['image_id'],
-                                    'url' => $img['url'] ?? '',
-                                    'file_name' => $img['file_name'] ?? 'Image',
-                                    'type' => 'image'
-                                ];
-                            }
+                            $hasMore = false;
                         }
-                    } catch (Exception $e) {
-                        logToFile("Error fetching image info: " . $e->getMessage());
-                        // Fall back to stored data
-                        foreach ($advertiserImages as $img) {
-                            $images[] = [
-                                'image_id' => $img['image_id'],
-                                'url' => $img['url'] ?? '',
-                                'file_name' => $img['file_name'] ?? 'Image',
-                                'type' => 'image'
-                            ];
-                        }
+                    } else {
+                        logToFile("Failed to fetch images from TikTok: HTTP {$httpCode}");
+                        break;
                     }
                 }
+                
+                // If no images from API, check local storage as fallback
+                if (empty($images)) {
+                    $storageFile = __DIR__ . '/media_storage.json';
+                    $storage = json_decode(file_get_contents($storageFile), true) ?? ['images' => [], 'videos' => []];
+                    
+                    $advertiserImages = array_filter($storage['images'] ?? [], function($img) use ($advertiser_id) {
+                        return $img['advertiser_id'] === $advertiser_id;
+                    });
+                    
+                    foreach ($advertiserImages as $img) {
+                        $images[] = [
+                            'image_id' => $img['image_id'],
+                            'url' => $img['url'] ?? '',
+                            'file_name' => $img['file_name'] ?? 'Image',
+                            'type' => 'image'
+                        ];
+                    }
+                }
+                
+            } catch (Exception $e) {
+                logToFile("Error fetching images: " . $e->getMessage());
             }
+            
+            logToFile("Total images found: " . count($images));
             
             echo json_encode([
                 'success' => true,
                 'data' => ['list' => $images],
-                'message' => count($images) > 0 ? null : 'Upload images to see them in library'
+                'message' => count($images) > 0 ? null : 'No images in TikTok library. Upload images first.'
             ]);
             break;
 
@@ -1144,6 +1159,81 @@ try {
                 'data' => $response->data ?? null,
                 'message' => $response->message ?? 'Ad group duplicated successfully'
             ]);
+            break;
+
+        case 'sync_images_from_tiktok':
+            logToFile("Syncing images from TikTok - Advertiser ID: " . $advertiser_id);
+            
+            $allImages = [];
+            $syncedCount = 0;
+            
+            try {
+                // Fetch all images from TikTok
+                $page = 1;
+                $pageSize = 100;
+                $hasMore = true;
+                
+                while ($hasMore && $page <= 20) {
+                    $url = "https://business-api.tiktok.com/open_api/v1.3/file/image/ad/info/?advertiser_id={$advertiser_id}&page={$page}&page_size={$pageSize}";
+                    
+                    $ch = curl_init();
+                    curl_setopt_array($ch, [
+                        CURLOPT_URL => $url,
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_HTTPHEADER => [
+                            'Access-Token: ' . $accessToken,
+                            'Content-Type: application/json'
+                        ]
+                    ]);
+                    
+                    $result = curl_exec($ch);
+                    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+                    
+                    if ($httpCode == 200) {
+                        $response = json_decode($result);
+                        
+                        if (empty($response->code) && isset($response->data->list)) {
+                            foreach ($response->data->list as $image) {
+                                $allImages[] = [
+                                    'image_id' => $image->image_id,
+                                    'url' => $image->image_url ?? $image->url ?? '',
+                                    'file_name' => $image->file_name ?? $image->material_name ?? 'Image ' . $image->image_id,
+                                    'width' => $image->width ?? null,
+                                    'height' => $image->height ?? null,
+                                    'format' => $image->format ?? null,
+                                    'type' => 'image'
+                                ];
+                                $syncedCount++;
+                            }
+                            
+                            $totalNumber = $response->data->page_info->total_number ?? 0;
+                            $currentTotal = $page * $pageSize;
+                            $hasMore = $currentTotal < $totalNumber;
+                            $page++;
+                        } else {
+                            $hasMore = false;
+                        }
+                    } else {
+                        throw new Exception("Failed to fetch images: HTTP {$httpCode}");
+                    }
+                }
+                
+                logToFile("Synced {$syncedCount} images from TikTok");
+                
+                echo json_encode([
+                    'success' => true,
+                    'data' => ['images' => $allImages, 'count' => $syncedCount],
+                    'message' => "Synced {$syncedCount} images from TikTok library"
+                ]);
+                
+            } catch (Exception $e) {
+                logToFile("Error syncing images: " . $e->getMessage());
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to sync images: ' . $e->getMessage()
+                ]);
+            }
             break;
 
         case 'sync_tiktok_library':

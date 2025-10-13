@@ -554,18 +554,33 @@ function openMediaModal(adIndex, selectionType = 'primary') {
     const modal = document.getElementById('media-modal');
     modal.classList.add('show');
 
-    // Update modal title based on selection type
+    // Update modal title and tabs based on selection type
     const modalTitle = modal.querySelector('.modal-header h3');
+    const modalTabs = modal.querySelector('.modal-tabs');
+    
     if (selectionType === 'cover') {
         modalTitle.innerHTML = 'Select Cover Image <span style="font-size: 14px; color: #667eea; margin-left: 10px;">(Images only)</span>';
-    } else {
-        modalTitle.innerHTML = 'Select Media <span id="selection-counter" style="font-size: 14px; color: #667eea; margin-left: 10px; display: none;"></span>';
-    }
-
-    // Load appropriate library
-    if (selectionType === 'cover') {
+        
+        // Update tabs for image-only selection
+        modalTabs.innerHTML = `
+            <button class="tab-btn active" onclick="switchMediaTab('library', event)">Image Library</button>
+            <button class="tab-btn" onclick="switchMediaTab('upload', event)">Upload Image</button>
+            <button class="btn-secondary btn-sm" onclick="loadImageLibrary()" style="margin-left: auto;">🔄 Refresh</button>
+            <button class="btn-secondary btn-sm" onclick="syncImagesFromTikTok()">📥 Sync from TikTok</button>
+        `;
+        
         loadImageLibrary(); // Load only images for cover selection
     } else {
+        modalTitle.innerHTML = 'Select Media <span id="selection-counter" style="font-size: 14px; color: #667eea; margin-left: 10px; display: none;"></span>';
+        
+        // Restore default tabs
+        modalTabs.innerHTML = `
+            <button class="tab-btn active" onclick="switchMediaTab('library', event)">Library</button>
+            <button class="tab-btn" onclick="switchMediaTab('upload', event)">Upload New</button>
+            <button class="btn-secondary btn-sm" onclick="refreshMediaLibrary()" style="margin-left: auto;">🔄 Refresh</button>
+            <button class="btn-secondary btn-sm" onclick="syncTikTokLibrary()">📥 Sync from TikTok</button>
+        `;
+        
         loadMediaLibrary(); // Load all media
     }
     
@@ -609,7 +624,7 @@ function switchMediaTab(tab, evt) {
 // Load media library
 async function loadImageLibrary() {
     const mediaGrid = document.getElementById('media-grid');
-    mediaGrid.innerHTML = '<div class="loading">Loading images...</div>';
+    mediaGrid.innerHTML = '<div class="loading">Loading images from TikTok...</div>';
 
     try {
         const response = await apiRequest('get_images', {}, 'GET');
@@ -620,32 +635,57 @@ async function loadImageLibrary() {
             if (images.length === 0) {
                 mediaGrid.innerHTML = `
                     <div class="empty-state">
-                        <p>No images in library</p>
-                        <small>Upload images first</small>
+                        <p>No images found in TikTok library</p>
+                        <small>Upload images to TikTok first or click "Sync from TikTok" above</small>
+                        <button class="btn-primary" style="margin-top: 10px;" onclick="syncImagesFromTikTok()">
+                            📥 Sync Images from TikTok
+                        </button>
                     </div>`;
                 return;
             }
 
-            mediaGrid.innerHTML = images.map(image => `
-                <div class="media-item" onclick="selectMedia(${JSON.stringify(image).replace(/"/g, '&quot;')})" data-id="${image.image_id}">
+            console.log(`Loaded ${images.length} images from TikTok library`);
+            
+            mediaGrid.innerHTML = images.map(image => {
+                // Create a safe ID for the onclick
+                const safeImage = {
+                    image_id: image.image_id,
+                    url: image.url,
+                    file_name: image.file_name,
+                    type: 'image'
+                };
+                
+                return `
+                <div class="media-item" onclick='selectMedia(${JSON.stringify(safeImage)})' data-id="${image.image_id}">
                     ${image.url ? 
-                        `<img src="${image.url}" alt="${image.file_name}" style="width: 100%; height: 100%; object-fit: cover;">` : 
+                        `<img src="${image.url}" alt="${image.file_name || 'Image'}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.innerHTML='<div class=\\'media-placeholder\\' style=\\'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\\'>🖼️</div>'">` : 
                         `<div class="media-placeholder" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                             <div class="media-icon">🖼️</div>
                         </div>`
                     }
                     <div class="media-info">
-                        <div class="media-name">${image.file_name || 'Image'}</div>
+                        <div class="media-name" title="${image.file_name || 'Image'}">${(image.file_name || 'Image').substring(0, 20)}${(image.file_name || '').length > 20 ? '...' : ''}</div>
                         <div class="media-type">Image</div>
+                        <div style="font-size: 10px; opacity: 0.7;">ID: ${image.image_id.substring(0, 8)}...</div>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
+            
+            showToast(`Loaded ${images.length} images from TikTok`, 'success');
         } else {
-            mediaGrid.innerHTML = '<div class="error">Failed to load images</div>';
+            mediaGrid.innerHTML = `
+                <div class="error">
+                    <p>Failed to load images from TikTok</p>
+                    <button class="btn-secondary" onclick="loadImageLibrary()">Try Again</button>
+                </div>`;
         }
     } catch (error) {
         console.error('Error loading images:', error);
-        mediaGrid.innerHTML = '<div class="error">Failed to load images</div>';
+        mediaGrid.innerHTML = `
+            <div class="error">
+                <p>Error loading images: ${error.message}</p>
+                <button class="btn-secondary" onclick="loadImageLibrary()">Try Again</button>
+            </div>`;
     }
 }
 
@@ -684,6 +724,28 @@ async function loadMediaLibrary() {
     } catch (error) {
         console.error('Error loading media library:', error);
         showToast('Error loading media library', 'error');
+    }
+}
+
+// Sync images from TikTok
+async function syncImagesFromTikTok() {
+    showLoading();
+    try {
+        const response = await apiRequest('sync_images_from_tiktok');
+        
+        if (response.success) {
+            showToast(response.message || 'Images synced successfully', 'success');
+            // Reload the image library
+            if (state.currentSelectionType === 'cover') {
+                loadImageLibrary();
+            }
+        } else {
+            showToast(response.message || 'Failed to sync images', 'error');
+        }
+    } catch (error) {
+        showToast('Error syncing images: ' + error.message, 'error');
+    } finally {
+        hideLoading();
     }
 }
 
