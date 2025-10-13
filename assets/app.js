@@ -419,6 +419,7 @@ function addAdForm(index, duplicateFrom = null) {
             <img id="creative-preview-${index}" class="creative-preview" style="display: none;">
             <input type="hidden" id="creative-id-${index}">
             <input type="hidden" id="creative-type-${index}">
+            <input type="hidden" id="cover-image-id-${index}">
         </div>
 
         <div class="form-group">
@@ -795,7 +796,7 @@ function updateSelectionCounter() {
 }
 
 // Confirm media selection
-function confirmMediaSelection() {
+async function confirmMediaSelection() {
     if (!state.selectedMedia || state.selectedMedia.length === 0) {
         showToast('Please select at least one media file', 'error');
         return;
@@ -806,6 +807,28 @@ function confirmMediaSelection() {
     
     // For now, use the first selected media (can be extended for carousel ads)
     const media = selectedMediaList[0];
+    
+    // For videos, upload the cover image to get an image_id
+    if (media.type === 'video' && media.video_cover_url) {
+        showLoading();
+        try {
+            console.log('Uploading video cover to get image_id...');
+            const coverResponse = await apiRequest('upload_cover_from_url', {
+                cover_url: media.video_cover_url
+            });
+            
+            if (coverResponse.success && coverResponse.image_id) {
+                console.log('Cover uploaded successfully, image_id:', coverResponse.image_id);
+                media.cover_image_id = coverResponse.image_id;
+            } else {
+                console.warn('Failed to upload cover image:', coverResponse.message);
+            }
+        } catch (error) {
+            console.error('Error uploading cover:', error);
+        } finally {
+            hideLoading();
+        }
+    }
 
     // Update ad form with the correct ID
     const mediaId = media.video_id || media.image_id || media.id;
@@ -816,6 +839,12 @@ function confirmMediaSelection() {
     
     document.getElementById(`creative-id-${adIndex}`).value = mediaId;
     document.getElementById(`creative-type-${adIndex}`).value = media.type;
+    
+    // Store the cover image ID if available
+    if (media.cover_image_id) {
+        document.getElementById(`cover-image-id-${adIndex}`).value = media.cover_image_id;
+        console.log(`Stored cover image ID for ad ${adIndex}: ${media.cover_image_id}`);
+    }
 
     // Show preview in the ad form
     const preview = document.getElementById(`creative-preview-${adIndex}`);
@@ -1226,10 +1255,21 @@ async function publishAll() {
 
             const creativeType = document.getElementById(`creative-type-${adIndex}`).value;
             const creativeId = document.getElementById(`creative-id-${adIndex}`).value;
+            const coverImageId = document.getElementById(`cover-image-id-${adIndex}`)?.value;
 
             if (creativeType === 'video') {
                 adData.video_id = creativeId;
                 adData.ad_format = 'SINGLE_VIDEO';
+                
+                // For video ads, image_ids is REQUIRED for the video cover
+                if (coverImageId) {
+                    adData.image_ids = [coverImageId];
+                    console.log(`Using cover image_id for video ad: ${coverImageId}`);
+                } else {
+                    console.warn('No cover image_id for video ad - this may cause the ad creation to fail');
+                    // Try to use a default or placeholder image_id if available
+                    adData.image_ids = []; // This will likely fail, but TikTok will provide error details
+                }
             } else {
                 adData.image_ids = [creativeId];
                 adData.ad_format = 'SINGLE_IMAGE';

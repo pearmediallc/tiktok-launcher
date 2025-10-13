@@ -396,6 +396,59 @@ try {
             ]);
             break;
 
+        case 'upload_cover_from_url':
+            // Upload a cover image from URL (for video covers)
+            $file = new File($config);
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (empty($data['cover_url'])) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'No cover URL provided'
+                ]);
+                break;
+            }
+            
+            logToFile("============ COVER IMAGE UPLOAD FROM URL ============");
+            logToFile("Cover URL: " . $data['cover_url']);
+            
+            // Download the image from URL
+            $imageContent = file_get_contents($data['cover_url']);
+            if (!$imageContent) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to download image from URL'
+                ]);
+                break;
+            }
+            
+            // Create temporary file
+            $tempFile = tempnam(sys_get_temp_dir(), 'cover_');
+            file_put_contents($tempFile . '.jpg', $imageContent);
+            
+            // Upload to TikTok
+            $params = [
+                'advertiser_id' => $advertiser_id,
+                'upload_type' => 'UPLOAD_BY_FILE',
+                'image_file' => new CURLFile($tempFile . '.jpg', 'image/jpeg', 'cover.jpg'),
+                'image_signature' => md5($imageContent)
+            ];
+            
+            $response = $file->uploadImage($params);
+            logToFile("Cover Upload Response: " . json_encode($response, JSON_PRETTY_PRINT));
+            
+            // Clean up temp file
+            @unlink($tempFile);
+            @unlink($tempFile . '.jpg');
+            
+            echo json_encode([
+                'success' => empty($response->code) || $response->code == 0,
+                'data' => $response->data ?? null,
+                'image_id' => $response->data->image_id ?? null,
+                'message' => $response->message ?? 'Cover uploaded successfully'
+            ]);
+            break;
+            
         case 'upload_image':
             $file = new File($config);
 
