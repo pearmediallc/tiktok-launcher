@@ -945,8 +945,9 @@ try {
                                     }
                                 }
                                 
-                                // Extract all possible thumbnail URLs
-                                $thumbnailUrl = $video->poster_url ?? 
+                                // Extract all possible thumbnail URLs - video_cover_url is what TikTok returns
+                                $thumbnailUrl = $video->video_cover_url ?? 
+                                               $video->poster_url ?? 
                                                $video->cover_image_url ?? 
                                                $video->cover_url ?? 
                                                $video->thumbnail_url ?? 
@@ -954,10 +955,11 @@ try {
                                 
                                 $videos[] = [
                                     'video_id' => $video->video_id,
-                                    'url' => $video->video_url ?? '',
+                                    'url' => $video->video_url ?? $video->preview_url ?? '',
                                     'preview_url' => $thumbnailUrl,
                                     'poster_url' => $thumbnailUrl,
                                     'thumbnail_url' => $thumbnailUrl,
+                                    'video_cover_url' => $video->video_cover_url ?? '',
                                     'file_name' => $originalData['file_name'] ?? $video->file_name ?? $video->video_name ?? 'Video',
                                     'duration' => $video->duration ?? $originalData['duration'] ?? null,
                                     'width' => $video->width ?? null,

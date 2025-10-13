@@ -1050,12 +1050,31 @@ function populateIdentitiesForAd(adIndex) {
 
 // Review ads before publishing
 function reviewAds() {
-    console.log('Review Ads clicked - Validating ads...');
-    console.log('Current state.ads:', state.ads);
+    console.log('=====================================');
+    console.log('Review Ads button clicked');
+    console.log('Current state:', state);
+    console.log('Number of ads:', state.ads.length);
+    console.log('Campaign ID:', state.campaignId);
+    console.log('Ad Group ID:', state.adGroupId);
+    console.log('=====================================');
+    
+    // Check if we have campaign and ad group
+    if (!state.campaignId) {
+        showToast('Please create a campaign first (Step 1)', 'error');
+        console.error('No campaign ID found');
+        return;
+    }
+    
+    if (!state.adGroupId) {
+        showToast('Please create an ad group first (Step 2)', 'error');
+        console.error('No ad group ID found');
+        return;
+    }
     
     // Check if we have any ads
     if (state.ads.length === 0) {
         showToast('Please add at least one ad before continuing', 'error');
+        console.error('No ads found');
         return;
     }
     
@@ -1170,10 +1189,17 @@ function generateReviewSummary() {
 
 // Publish all ads
 async function publishAll() {
+    console.log('=====================================');
+    console.log('Publish All button clicked');
+    console.log('State before publishing:', state);
+    console.log('=====================================');
+    
     if (!confirm('Are you sure you want to publish all ads? This cannot be undone.')) {
+        console.log('User cancelled publish');
         return;
     }
 
+    console.log('Starting ad creation process...');
     showLoading();
 
     try {
