@@ -644,9 +644,26 @@ async function loadImageLibrary() {
                 return;
             }
 
-            console.log(`Loaded ${images.length} images from TikTok library`);
+            console.log(`Loaded ${images.length} images from library`);
             
-            mediaGrid.innerHTML = images.map(image => {
+            // Add manual input option at the top
+            const manualInputHtml = `
+                <div style="grid-column: 1 / -1; padding: 15px; background: #f0f8ff; border-radius: 8px; margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 10px 0; color: #333;">Manual Image ID Entry</h4>
+                    <p style="font-size: 12px; color: #666; margin: 0 0 10px 0;">
+                        If you know your image ID from TikTok Ads Manager, enter it here:
+                    </p>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="manual-image-id" placeholder="Enter TikTok Image ID" 
+                               style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <button onclick="useManualImageId()" class="btn-primary" style="padding: 8px 16px;">
+                            Use This Image
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            const imagesHtml = images.map(image => {
                 // Create a safe ID for the onclick
                 const safeImage = {
                     image_id: image.image_id,
@@ -671,7 +688,11 @@ async function loadImageLibrary() {
                 </div>`;
             }).join('');
             
-            showToast(`Loaded ${images.length} images from TikTok`, 'success');
+            mediaGrid.innerHTML = manualInputHtml + imagesHtml;
+            
+            if (images.length > 0) {
+                showToast(`Found ${images.length} uploaded images`, 'success');
+            }
         } else {
             mediaGrid.innerHTML = `
                 <div class="error">
@@ -725,6 +746,34 @@ async function loadMediaLibrary() {
         console.error('Error loading media library:', error);
         showToast('Error loading media library', 'error');
     }
+}
+
+// Use manually entered image ID
+function useManualImageId() {
+    const imageIdInput = document.getElementById('manual-image-id');
+    if (!imageIdInput) return;
+    
+    const imageId = imageIdInput.value.trim();
+    if (!imageId) {
+        showToast('Please enter an image ID', 'error');
+        return;
+    }
+    
+    // Create a media object with just the ID
+    const manualImage = {
+        image_id: imageId,
+        url: '',
+        file_name: `Manual Image (${imageId})`,
+        type: 'image'
+    };
+    
+    // Select this image
+    selectMedia(manualImage);
+    
+    showToast(`Selected image ID: ${imageId}`, 'success');
+    
+    // Clear the input
+    imageIdInput.value = '';
 }
 
 // Sync images from TikTok
