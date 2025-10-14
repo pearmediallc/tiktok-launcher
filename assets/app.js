@@ -514,8 +514,8 @@ function addAdForm(index, duplicateFrom = null) {
         </div>
 
         <div class="form-group">
-            <label>Destination URL (Thank You Page)</label>
-            <input type="text" id="destination-url-${index}" placeholder="https://example.com/thank-you" required>
+            <label>Destination URL (Optional - Only for tracking)</label>
+            <input type="text" id="destination-url-${index}" placeholder="https://example.com/thank-you (optional for Lead Gen)">
         </div>
 
         <div class="form-group">
@@ -1517,11 +1517,7 @@ function reviewAds() {
             allValid = false;
             break;
         }
-        if (!destinationUrl) {
-            showToast(`Please enter destination URL for Ad #${adIndex + 1}`, 'error');
-            allValid = false;
-            break;
-        }
+        // Destination URL is optional for Lead Generation campaigns
         // Identity is REQUIRED according to TikTok API docs
         if (!identityId) {
             showToast(`Please select an identity for Ad #${adIndex + 1}. Identity is required for ad creation.`, 'error');
@@ -1618,7 +1614,8 @@ async function publishAll() {
                 call_to_action: document.getElementById(`cta-${adIndex}`).value,
                 landing_page_url: document.getElementById(`destination-url-${adIndex}`).value,
                 identity_id: selectedIdentity,
-                identity_type: identityType || 'CUSTOMIZED_USER'
+                identity_type: identityType || 'CUSTOMIZED_USER',
+                is_lead_gen: true  // We're using Lead Generation campaigns
             };
 
             const creativeType = document.getElementById(`creative-type-${adIndex}`).value;

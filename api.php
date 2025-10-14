@@ -490,35 +490,46 @@ try {
                 exit;
             }
             
-            if (empty($data['landing_page_url'])) {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Landing page URL is required for ad creation.',
-                    'code' => 40002
-                ]);
-                exit;
-            }
+            // Check if this is a Lead Generation campaign
+            // For Lead Gen, we should NOT include landing_page_url in the creative
+            $isLeadGen = isset($data['is_lead_gen']) && $data['is_lead_gen'];
             
-            // Validate URL format
-            if (!filter_var($data['landing_page_url'], FILTER_VALIDATE_URL)) {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Invalid landing page URL format. Please provide a valid URL.',
-                    'code' => 40003
-                ]);
-                exit;
-            }
-            
-            // Build creative object
+            // Build creative object based on campaign type
             $creative = [
                 'ad_name' => $data['ad_name'],
                 'ad_format' => $data['ad_format'] ?? 'SINGLE_VIDEO',
                 'ad_text' => $data['ad_text'],
-                'call_to_action' => $data['call_to_action'] ?? 'LEARN_MORE',
-                'landing_page_url' => $data['landing_page_url'], // Required even for Lead Gen
                 'identity_type' => $data['identity_type'] ?? 'CUSTOMIZED_USER',
                 'identity_id' => $data['identity_id']
             ];
+            
+            // Set appropriate CTA based on campaign type
+            if ($isLeadGen) {
+                // For Lead Gen, use SIGN_UP or LEARN_MORE
+                $creative['call_to_action'] = in_array($data['call_to_action'], ['SIGN_UP', 'LEARN_MORE', 'GET_QUOTE', 'APPLY_NOW', 'CONTACT_US', 'SUBSCRIBE']) 
+                    ? $data['call_to_action'] 
+                    : 'SIGN_UP';
+            } else {
+                $creative['call_to_action'] = $data['call_to_action'] ?? 'LEARN_MORE';
+            }
+            
+            // Only add landing_page_url for non-Lead Gen campaigns
+            // For Lead Gen, the form handles the landing page
+            if (!$isLeadGen && !empty($data['landing_page_url'])) {
+                // Validate URL format for non-Lead Gen campaigns
+                if (!filter_var($data['landing_page_url'], FILTER_VALIDATE_URL)) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Invalid landing page URL format. Please provide a valid URL.',
+                        'code' => 40003
+                    ]);
+                    exit;
+                }
+                $creative['landing_page_url'] = $data['landing_page_url'];
+            }
+            
+            logToFile("Campaign type: " . ($isLeadGen ? "Lead Generation" : "Standard"));
+            logToFile("Landing page URL included: " . (isset($creative['landing_page_url']) ? "Yes" : "No"));
 
             // Add video_id and/or image_ids based on format
             if ($data['ad_format'] === 'SINGLE_VIDEO') {
