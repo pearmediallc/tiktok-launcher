@@ -411,21 +411,38 @@ try {
                 $params['schedule_end_time'] = $data['schedule_end_time'];
             }
 
+            // Handle dayparting
             if (!empty($data['dayparting'])) {
+                logToFile("Dayparting received: length=" . strlen($data['dayparting']));
+                logToFile("First 24 chars (Monday): " . substr($data['dayparting'], 0, 24));
+                
                 if (strlen($data['dayparting']) !== 168) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'dayparting must be 168-char binary string']);
+                    echo json_encode(['success' => false, 'message' => 'dayparting must be 168-char binary string (got ' . strlen($data['dayparting']) . ' chars)']);
                     exit;
                 }
-                $params['time_series_type'] = 'CUSTOMIZED';
-                $params['time_series']      = $data['dayparting'];
+                
+                // Validate that it only contains 0s and 1s
+                if (!preg_match('/^[01]{168}$/', $data['dayparting'])) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'dayparting must contain only 0s and 1s']);
+                    exit;
+                }
+                
+                // Only set dayparting if at least one hour is selected
+                if (strpos($data['dayparting'], '1') !== false) {
+                    $params['dayparting'] = $data['dayparting'];
+                    logToFile("Dayparting will be sent to TikTok API");
+                } else {
+                    logToFile("Dayparting string has no selected hours, skipping");
+                }
             } elseif (isset($data['daypart_start_hour']) && isset($data['daypart_end_hour'])) {
-                $params['time_series_type'] = 'CUSTOMIZED';
-                $params['time_series']      = generate_time_series(
+                $params['dayparting'] = generate_time_series(
                     intval($data['daypart_start_hour']),
                     intval($data['daypart_end_hour']),
                     $data['daypart_days'] ?? [0,1,2,3,4,5,6]
                 );
+                logToFile("Generated dayparting from hours: " . $params['dayparting']);
             }
 
             logToFile("TikTok API: POST /open_api/v1.3/adgroup/create/");

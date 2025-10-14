@@ -118,13 +118,40 @@ function initializeDayparting() {
             checkbox.className = 'hour-checkbox';
             checkbox.dataset.day = dayIndex;
             checkbox.dataset.hour = hour;
-            // Only check Monday (index 1) by default
-            checkbox.checked = (dayIndex === 1);
+            checkbox.title = `${day} ${hour}:00-${hour+1}:00`;
+            // Don't check any by default
+            checkbox.checked = false;
             td.appendChild(checkbox);
             tr.appendChild(td);
         }
 
         tbody.appendChild(tr);
+    });
+}
+
+// Dayparting helper functions
+function selectAllHours() {
+    document.querySelectorAll('.hour-checkbox').forEach(cb => cb.checked = true);
+}
+
+function clearAllHours() {
+    document.querySelectorAll('.hour-checkbox').forEach(cb => cb.checked = false);
+}
+
+function selectBusinessHours() {
+    document.querySelectorAll('.hour-checkbox').forEach(cb => {
+        const hour = parseInt(cb.dataset.hour);
+        const day = parseInt(cb.dataset.day);
+        // Monday-Friday (1-5), 9am-5pm (9-17)
+        cb.checked = (day >= 1 && day <= 5 && hour >= 9 && hour < 17);
+    });
+}
+
+function selectPrimeTime() {
+    document.querySelectorAll('.hour-checkbox').forEach(cb => {
+        const hour = parseInt(cb.dataset.hour);
+        // All days, 6pm-10pm (18-22)
+        cb.checked = (hour >= 18 && hour < 22);
     });
 }
 
@@ -137,7 +164,7 @@ function toggleDayparting() {
 // Get dayparting data
 function getDaypartingData() {
     if (!document.getElementById('enable-dayparting').checked) {
-        return null;
+        return {};
     }
 
     // TikTok format: 168 characters (7 days × 24 hours)
@@ -145,21 +172,34 @@ function getDaypartingData() {
     // '1' = enabled, '0' = disabled
     let dayparting = '';
 
-    // Days: 0=Monday, 1=Tuesday, ..., 6=Sunday (TikTok ordering)
-    // Our UI: 0=Sunday, 1=Monday, ..., 6=Saturday
-    // Need to reorder: [1,2,3,4,5,6,0] to convert Sunday-Saturday to Monday-Sunday
-    const dayOrder = [1, 2, 3, 4, 5, 6, 0]; // Mon, Tue, Wed, Thu, Fri, Sat, Sun
-
-    for (let i = 0; i < 7; i++) {
-        const day = dayOrder[i];
+    // TikTok API expects: Monday to Sunday ordering
+    // Our UI shows: Sunday to Saturday
+    // We need to reorder the days to match TikTok's expectation
+    
+    // Process in TikTok order: Monday (1), Tuesday (2), ..., Sunday (0)
+    const tikTokDayOrder = [1, 2, 3, 4, 5, 6, 0]; // Mon, Tue, Wed, Thu, Fri, Sat, Sun
+    
+    for (let tikTokDay = 0; tikTokDay < 7; tikTokDay++) {
+        const uiDay = tikTokDayOrder[tikTokDay];
         for (let hour = 0; hour < 24; hour++) {
-            const checkbox = document.querySelector(`.hour-checkbox[data-day="${day}"][data-hour="${hour}"]`);
+            const checkbox = document.querySelector(`.hour-checkbox[data-day="${uiDay}"][data-hour="${hour}"]`);
             dayparting += (checkbox && checkbox.checked) ? '1' : '0';
         }
     }
 
     // Must be exactly 168 characters (7 × 24)
-    return dayparting.length === 168 ? dayparting : null;
+    if (dayparting.length !== 168) {
+        console.error('Dayparting string length is not 168:', dayparting.length);
+        return {};
+    }
+    
+    // Log for debugging
+    console.log('Dayparting enabled, string length:', dayparting.length);
+    console.log('First 24 chars (Monday):', dayparting.substring(0, 24));
+    
+    return {
+        dayparting: dayparting
+    };
 }
 
 // Step navigation

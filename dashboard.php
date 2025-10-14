@@ -182,6 +182,12 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                     </div>
 
                     <div id="dayparting-section" style="display: none;">
+                        <div style="margin-bottom: 15px;">
+                            <button type="button" class="btn-secondary" onclick="selectAllHours()" style="padding: 8px 15px; font-size: 13px;">Select All</button>
+                            <button type="button" class="btn-secondary" onclick="clearAllHours()" style="padding: 8px 15px; font-size: 13px;">Clear All</button>
+                            <button type="button" class="btn-secondary" onclick="selectBusinessHours()" style="padding: 8px 15px; font-size: 13px;">Business Hours (9-17)</button>
+                            <button type="button" class="btn-secondary" onclick="selectPrimeTime()" style="padding: 8px 15px; font-size: 13px;">Prime Time (18-22)</button>
+                        </div>
                         <div class="dayparting-grid">
                             <table class="dayparting-table">
                                 <thead>
@@ -194,6 +200,9 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                                     <!-- Will be populated by JavaScript -->
                                 </tbody>
                             </table>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                            <p><strong>Note:</strong> Selected hours will show ads in your advertiser's timezone. TikTok uses UTC for scheduling.</p>
                         </div>
                     </div>
                 </div>
