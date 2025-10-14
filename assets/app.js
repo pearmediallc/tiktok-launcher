@@ -363,7 +363,7 @@ async function createAdGroup() {
             adgroup_name: adGroupName,
 
             // OPTIMIZATION (Lead Generation - Form submission)
-            promotion_type: 'LEAD_GENERATION',  // Lead generation campaign
+            promotion_type: 'WEBSITE',  // WEBSITE is required for Lead Gen with landing pages
             lead_gen_form_id: pixelId,  // Lead generation form ID (using pixel field for form ID)
             optimization_goal: 'LEAD_GENERATION',  // Lead generation goal
             billing_event: 'OCPM',
@@ -1615,7 +1615,7 @@ async function publishAll() {
                 landing_page_url: document.getElementById(`destination-url-${adIndex}`).value,
                 identity_id: selectedIdentity,
                 identity_type: identityType || 'CUSTOMIZED_USER',
-                is_lead_gen: true  // We're using Lead Generation campaigns
+                promotion_type: 'WEBSITE'  // Using WEBSITE for Lead Gen campaigns with landing pages
             };
 
             const creativeType = document.getElementById(`creative-type-${adIndex}`).value;

@@ -491,10 +491,9 @@ try {
             }
             
             // Check if this is a Lead Generation campaign
-            // For Lead Gen, we should NOT include landing_page_url in the creative
             $isLeadGen = isset($data['is_lead_gen']) && $data['is_lead_gen'];
             
-            // Build creative object based on campaign type
+            // Build creative object according to TikTok documentation
             $creative = [
                 'ad_name' => $data['ad_name'],
                 'ad_format' => $data['ad_format'] ?? 'SINGLE_VIDEO',
@@ -503,20 +502,18 @@ try {
                 'identity_id' => $data['identity_id']
             ];
             
-            // Set appropriate CTA based on campaign type
-            if ($isLeadGen) {
-                // For Lead Gen, use SIGN_UP or LEARN_MORE
-                $creative['call_to_action'] = in_array($data['call_to_action'], ['SIGN_UP', 'LEARN_MORE', 'GET_QUOTE', 'APPLY_NOW', 'CONTACT_US', 'SUBSCRIBE']) 
-                    ? $data['call_to_action'] 
-                    : 'SIGN_UP';
+            // Add call_to_action - required field
+            if (!empty($data['call_to_action'])) {
+                $creative['call_to_action'] = $data['call_to_action'];
             } else {
-                $creative['call_to_action'] = $data['call_to_action'] ?? 'LEARN_MORE';
+                // Default CTAs based on campaign type
+                $creative['call_to_action'] = $isLeadGen ? 'SIGN_UP' : 'LEARN_MORE';
             }
             
-            // Only add landing_page_url for non-Lead Gen campaigns
-            // For Lead Gen, the form handles the landing page
-            if (!$isLeadGen && !empty($data['landing_page_url'])) {
-                // Validate URL format for non-Lead Gen campaigns
+            // According to TikTok docs: landing_page_url is REQUIRED when promotion_type is WEBSITE
+            // This applies to Lead Generation campaigns with WEBSITE promotion_type
+            if (!empty($data['landing_page_url'])) {
+                // Validate URL format
                 if (!filter_var($data['landing_page_url'], FILTER_VALIDATE_URL)) {
                     echo json_encode([
                         'success' => false,
@@ -526,10 +523,19 @@ try {
                     exit;
                 }
                 $creative['landing_page_url'] = $data['landing_page_url'];
+            } else if ($data['promotion_type'] === 'WEBSITE' || !isset($data['promotion_type'])) {
+                // For WEBSITE promotion type (including Lead Gen), landing_page_url is required
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Landing page URL is required for WEBSITE promotion type.',
+                    'code' => 40002
+                ]);
+                exit;
             }
             
             logToFile("Campaign type: " . ($isLeadGen ? "Lead Generation" : "Standard"));
-            logToFile("Landing page URL included: " . (isset($creative['landing_page_url']) ? "Yes" : "No"));
+            logToFile("Call to action: " . $creative['call_to_action']);
+            logToFile("Landing page URL included: " . (isset($creative['landing_page_url']) ? "Yes - " . $creative['landing_page_url'] : "No"));
 
             // Add video_id and/or image_ids based on format
             if ($data['ad_format'] === 'SINGLE_VIDEO') {
