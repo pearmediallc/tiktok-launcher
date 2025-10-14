@@ -1233,7 +1233,7 @@ try {
             $response = $ad->statusUpdate([
                 'advertiser_id' => $advertiser_id,
                 'ad_ids' => $data['ad_ids'],
-                'opt_status' => 'ENABLE'
+                'operation_status' => 'ENABLE'
             ]);
 
             echo json_encode([
