@@ -26,7 +26,7 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
         
         .advertiser-header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
         
         .advertiser-header h2 {
@@ -37,6 +37,42 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
         .advertiser-header p {
             color: #666;
             font-size: 14px;
+        }
+        
+        .search-container {
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 15px 12px 40px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 16px;
+        }
+        
+        .search-results-info {
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 13px;
+            text-align: center;
         }
         
         .advertiser-list {
@@ -141,6 +177,16 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 <p>Choose which advertiser account you want to use for creating campaigns</p>
             </div>
             
+            <!-- Search Bar -->
+            <div class="search-container" id="search-container" style="display: none;">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="search-input" placeholder="Search advertiser accounts by name or ID..." onkeyup="filterAdvertisers()">
+            </div>
+            
+            <div class="search-results-info" id="search-results-info" style="display: none;">
+                Showing <span id="visible-count">0</span> of <span id="total-count">0</span> accounts
+            </div>
+            
             <div id="advertiser-container" class="loading-advertisers">
                 <div class="spinner"></div>
                 <p>Loading advertiser accounts...</p>
@@ -159,6 +205,7 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
 
     <script>
         let selectedAdvertiserId = null;
+        let allAdvertisers = [];
 
         // Load advertiser accounts on page load
         window.addEventListener('DOMContentLoaded', () => {
@@ -188,7 +235,8 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 
                 if (result.success) {
                     console.log('Advertisers loaded:', result.data);
-                    displayAdvertiserAccounts(result.data);
+                    allAdvertisers = result.data || [];
+                    displayAdvertiserAccounts(allAdvertisers);
                 } else {
                     showError('Failed to load advertiser accounts: ' + (result.message || result.error || 'Unknown error'));
                 }
@@ -198,18 +246,37 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
             }
         }
 
-        function displayAdvertiserAccounts(advertisers) {
+        function displayAdvertiserAccounts(advertisers, isFiltered = false) {
             const container = document.getElementById('advertiser-container');
             
             if (!advertisers || advertisers.length === 0) {
-                container.innerHTML = `
-                    <div class="no-advertisers">
-                        <p>No advertiser accounts found.</p>
-                        <p>Please ensure your TikTok access token has the necessary permissions.</p>
-                    </div>
-                `;
+                if (isFiltered) {
+                    container.innerHTML = `
+                        <div class="no-advertisers">
+                            <p>No advertiser accounts match your search.</p>
+                            <p>Try adjusting your search terms.</p>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="no-advertisers">
+                            <p>No advertiser accounts found.</p>
+                            <p>Please ensure your TikTok access token has the necessary permissions.</p>
+                        </div>
+                    `;
+                }
                 return;
             }
+
+            // Show search bar if more than 5 accounts
+            if (allAdvertisers.length > 5) {
+                document.getElementById('search-container').style.display = 'block';
+                document.getElementById('search-results-info').style.display = 'block';
+            }
+            
+            // Update results info
+            document.getElementById('visible-count').textContent = advertisers.length;
+            document.getElementById('total-count').textContent = allAdvertisers.length;
 
             let html = '<div class="advertiser-list">';
             advertisers.forEach((advertiser, index) => {
@@ -251,6 +318,23 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
             document.getElementById('continue-btn').disabled = false;
         }
 
+        function filterAdvertisers() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+            
+            if (!searchTerm) {
+                displayAdvertiserAccounts(allAdvertisers, false);
+                return;
+            }
+            
+            const filteredAdvertisers = allAdvertisers.filter(advertiser => {
+                const name = (advertiser.advertiser_name || '').toLowerCase();
+                const id = (advertiser.advertiser_id || '').toLowerCase();
+                return name.includes(searchTerm) || id.includes(searchTerm);
+            });
+            
+            displayAdvertiserAccounts(filteredAdvertisers, true);
+        }
+
         async function proceedWithSelectedAdvertiser() {
             if (!selectedAdvertiserId) {
                 showError('Please select an advertiser account');
@@ -270,7 +354,19 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                     })
                 });
 
-                const result = await response.json();
+                const responseText = await response.text();
+                console.log('Set advertiser raw response:', responseText);
+                
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('Failed to parse set_advertiser response:', parseError);
+                    showError('Invalid response from server when setting advertiser');
+                    document.getElementById('continue-btn').disabled = false;
+                    document.getElementById('continue-btn').textContent = 'Continue to Campaign Creation →';
+                    return;
+                }
                 
                 if (result.success) {
                     showSuccess('Advertiser account selected successfully');
@@ -278,7 +374,7 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                         window.location.href = 'dashboard.php';
                     }, 1000);
                 } else {
-                    showError('Failed to set advertiser: ' + (result.error || 'Unknown error'));
+                    showError('Failed to set advertiser: ' + (result.message || result.error || 'Unknown error'));
                     document.getElementById('continue-btn').disabled = false;
                     document.getElementById('continue-btn').textContent = 'Continue to Campaign Creation →';
                 }

@@ -142,6 +142,8 @@ try {
             $data = json_decode(file_get_contents('php://input'), true);
             $selectedAdvertiserId = $data['advertiser_id'] ?? '';
             
+            logToFile("Set Advertiser Request - ID: {$selectedAdvertiserId}");
+            
             if (empty($selectedAdvertiserId)) {
                 echo json_encode([
                     'success' => false,
@@ -153,12 +155,14 @@ try {
             // Store in session
             $_SESSION['selected_advertiser_id'] = $selectedAdvertiserId;
             
+            logToFile("Advertiser ID stored in session: {$selectedAdvertiserId}");
+            
             echo json_encode([
                 'success' => true,
                 'message' => 'Advertiser selected successfully',
                 'advertiser_id' => $selectedAdvertiserId
             ]);
-            break;
+            exit; // Ensure we exit to prevent any additional output
             
         case 'test_image_search':
             // Direct test of image search API - matching TikTok docs exactly
