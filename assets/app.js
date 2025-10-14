@@ -364,7 +364,7 @@ async function createAdGroup() {
 
             // OPTIMIZATION (Lead Generation - Form submission)
             promotion_type: 'WEBSITE',  // WEBSITE is required for Lead Gen with landing pages
-            promotion_target_type: 'LANDING_PAGE',  // Use website landing page for lead generation
+            promotion_target_type: 'EXTERNAL_WEBSITE',  // Use external website for lead generation
             lead_gen_form_id: pixelId,  // Lead generation form ID (using pixel field for form ID)
             optimization_goal: 'LEAD_GENERATION',  // Lead generation goal
             billing_event: 'OCPM',
