@@ -47,7 +47,8 @@ $config = [
     'api_version'  => 'v1.3'
 ];
 
-$advertiser_id = $_ENV['TIKTOK_ADVERTISER_ID'] ?? '';
+// Get advertiser ID from session or environment variable
+$advertiser_id = $_SESSION['selected_advertiser_id'] ?? $_ENV['TIKTOK_ADVERTISER_ID'] ?? '';
 
 // Logging function
 function logToFile($message) {
@@ -70,6 +71,95 @@ header('Content-Type: application/json');
 
 try {
     switch ($action) {
+        case 'get_advertisers':
+            // Get list of advertiser accounts for the authenticated user
+            $appId = $_ENV['TIKTOK_APP_ID'] ?? '';
+            $secret = $_ENV['TIKTOK_APP_SECRET'] ?? '';
+            $accessToken = $_ENV['TIKTOK_ACCESS_TOKEN'] ?? '';
+            
+            if (empty($appId) || empty($secret)) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'App ID or Secret not configured'
+                ]);
+                exit;
+            }
+            
+            $url = "https://business-api.tiktok.com/open_api/v1.3/oauth2/advertiser/get/";
+            
+            // Add query parameters
+            $params = [
+                'app_id' => $appId,
+                'secret' => $secret
+            ];
+            
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url . '?' . http_build_query($params),
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => "",
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => "GET",
+                CURLOPT_HTTPHEADER => [
+                    "Access-Token: " . $accessToken,
+                    "Content-Type: application/json"
+                ],
+            ]);
+            
+            $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            logToFile("Get Advertisers Response - HTTP Code: {$httpCode}");
+            logToFile("Response: " . $result);
+            
+            if ($httpCode === 200) {
+                $response = json_decode($result, true);
+                if ($response && isset($response['code']) && $response['code'] == 0) {
+                    echo json_encode([
+                        'success' => true,
+                        'data' => $response['data']['list'] ?? []
+                    ]);
+                } else {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => $response['message'] ?? 'Failed to get advertisers'
+                    ]);
+                }
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'API request failed with HTTP code: ' . $httpCode
+                ]);
+            }
+            break;
+            
+        case 'set_advertiser':
+            // Set the selected advertiser ID for the session
+            $data = json_decode(file_get_contents('php://input'), true);
+            $selectedAdvertiserId = $data['advertiser_id'] ?? '';
+            
+            if (empty($selectedAdvertiserId)) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Advertiser ID is required'
+                ]);
+                exit;
+            }
+            
+            // Store in session
+            $_SESSION['selected_advertiser_id'] = $selectedAdvertiserId;
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Advertiser selected successfully',
+                'advertiser_id' => $selectedAdvertiserId
+            ]);
+            break;
+            
         case 'test_image_search':
             // Direct test of image search API - matching TikTok docs exactly
             header('Content-Type: application/json');
@@ -90,7 +180,7 @@ try {
                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                 CURLOPT_CUSTOMREQUEST => "GET",
                 CURLOPT_HTTPHEADER => [
-                    "Access-Token: " . $accessToken
+                    "Access-Token: " . ($_ENV['TIKTOK_ACCESS_TOKEN'] ?? '')
                 ]
             ]);
             

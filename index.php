@@ -18,16 +18,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($username === $_ENV['AUTH_USERNAME'] && $password === $_ENV['AUTH_PASSWORD']) {
         $_SESSION['authenticated'] = true;
-        header('Location: dashboard.php');
+        header('Location: select-advertiser.php');
         exit;
     } else {
         $error = 'Invalid credentials';
     }
 }
 
-// If already logged in, redirect to dashboard
+// If already logged in, redirect to advertiser selection
 if (isset($_SESSION['authenticated']) && $_SESSION['authenticated']) {
-    header('Location: dashboard.php');
+    header('Location: select-advertiser.php');
     exit;
 }
 ?>
