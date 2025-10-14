@@ -1636,12 +1636,10 @@ async function publishAll() {
                 console.log('Status update skipped - ads are enabled by default');
             }
 
-            // Show success message and reset
+            // Show success modal
             setTimeout(() => {
-                if (confirm('Campaign launched successfully! Do you want to create another campaign?')) {
-                    location.reload();
-                }
-            }, 2000);
+                showSuccessModal();
+            }, 1500);
         }
     } catch (error) {
         showToast('Error publishing ads: ' + error.message, 'error');
@@ -1743,4 +1741,152 @@ function togglePixelInput() {
         manualContainer.style.display = 'none';
         console.log('Showing dropdown');
     }
+}
+
+// Show success modal with thank you message
+function showSuccessModal() {
+    // Create modal overlay
+    const modalHtml = `
+        <div id="success-modal" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        ">
+            <div style="
+                background: white;
+                border-radius: 20px;
+                padding: 40px;
+                max-width: 500px;
+                text-align: center;
+                animation: slideIn 0.3s ease;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            ">
+                <div style="font-size: 72px; margin-bottom: 20px;">🎉</div>
+                <h2 style="color: #10b981; margin-bottom: 10px; font-size: 32px;">Thank You!</h2>
+                <p style="color: #333; margin-bottom: 20px; font-size: 18px; font-weight: 500;">
+                    Campaign Launched Successfully!
+                </p>
+                <p style="color: #666; margin-bottom: 30px; font-size: 14px;">
+                    Your TikTok ad campaign has been created and is now live. It may take a few minutes for the campaign to appear in your TikTok Ads Manager.
+                </p>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button onclick="createNewCampaign()" style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        border: none;
+                        padding: 14px 35px;
+                        border-radius: 8px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                        transition: transform 0.2s;
+                    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        Create Another Campaign
+                    </button>
+                    <button onclick="finishAndReset()" style="
+                        background: #f3f4f6;
+                        color: #374151;
+                        border: 2px solid #e5e7eb;
+                        padding: 14px 35px;
+                        border-radius: 8px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    " onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+                        Finish
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Add CSS animation if not already added
+    if (!document.getElementById('success-modal-styles')) {
+        const style = document.createElement('style');
+        style.id = 'success-modal-styles';
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes slideIn {
+                from { 
+                    transform: translateY(-30px); 
+                    opacity: 0; 
+                }
+                to { 
+                    transform: translateY(0); 
+                    opacity: 1; 
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+// Create new campaign - reload page
+function createNewCampaign() {
+    location.reload();
+}
+
+// Finish and properly reset everything
+function finishAndReset() {
+    // Remove success modal
+    const modal = document.getElementById('success-modal');
+    if (modal) {
+        modal.remove();
+    }
+    
+    // Reset all form fields
+    const allInputs = document.querySelectorAll('input[type="text"], input[type="number"], input[type="url"], input[type="datetime-local"], textarea, select');
+    allInputs.forEach(input => {
+        if (input.type === 'select-one') {
+            input.selectedIndex = 0;
+        } else {
+            input.value = '';
+        }
+    });
+    
+    // Reset campaign and ad group IDs display
+    const campaignIdDisplay = document.getElementById('display-campaign-id');
+    if (campaignIdDisplay) {
+        campaignIdDisplay.textContent = '-';
+    }
+    
+    // Clear all ad forms except the first one
+    const adsContainer = document.getElementById('ads-container');
+    if (adsContainer) {
+        adsContainer.innerHTML = '';
+    }
+    
+    // Reset state completely
+    state.campaignId = null;
+    state.adGroupId = null;
+    state.ads = [];
+    state.mediaLibrary = [];
+    state.selectedMedia = [];
+    state.currentStep = 1;
+    
+    // Reset step UI
+    currentStep = 1;
+    updateStepUI();
+    
+    // Add first ad form back
+    addFirstAd();
+    
+    // Show toast
+    showToast('Ready to create a new campaign', 'info');
 }
