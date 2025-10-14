@@ -86,7 +86,7 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 </div>
 
                 <div class="form-info">
-                    <p><strong>Objective:</strong> Web Conversions (Form Submit)</p>
+                    <p><strong>Objective:</strong> Lead Generation</p>
                     <p><strong>Type:</strong> Manual Campaign</p>
                 </div>
                 <button class="btn-primary" onclick="createCampaign()">Continue to Ad Group →</button>
@@ -104,9 +104,9 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 </div>
 
                 <div class="form-section">
-                    <h3>Pixel Configuration</h3>
+                    <h3>Lead Form Configuration</h3>
                     <div class="form-group">
-                        <label>Pixel Selection Method</label>
+                        <label>Lead Form Selection Method</label>
                         <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                             <label style="display: flex; align-items: center; gap: 5px;">
                                 <input type="radio" name="pixel-method" value="dropdown" checked onchange="togglePixelInput()">
@@ -119,16 +119,16 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                         </div>
                     </div>
                     <div class="form-group" id="pixel-dropdown-container">
-                        <label>Select Pixel</label>
+                        <label>Select Lead Generation Form</label>
                         <select id="lead-gen-form-id">
-                            <option value="">Loading pixels...</option>
+                            <option value="">Loading forms...</option>
                         </select>
-                        <small>Select the pixel for conversion tracking (Submit Form event).</small>
+                        <small>Select the lead generation form for collecting leads.</small>
                     </div>
                     <div class="form-group" id="pixel-manual-container" style="display: none;">
-                        <label>Pixel ID (Required)</label>
-                        <input type="text" id="pixel-manual-input" placeholder="Enter numeric Pixel ID (e.g., 1234567890)" style="width: 100%; padding: 8px;">
-                        <small>For shared pixels from Business Center: Go to TikTok Ads Manager > Tools > Events > Web Events. Find your shared pixel and copy the numeric pixel_id (NOT the alphanumeric pixel_code).</small>
+                        <label>Lead Form ID (Required)</label>
+                        <input type="text" id="pixel-manual-input" placeholder="Enter numeric Lead Form ID (e.g., 1234567890)" style="width: 100%; padding: 8px;">
+                        <small>Go to TikTok Ads Manager > Assets > Lead Generation > Forms. Find your form and copy the numeric form ID.</small>
                     </div>
                 </div>
 
@@ -164,8 +164,8 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 <div class="form-section">
                     <h3>Optimization & Placement</h3>
                     <div class="form-info">
-                        <p><strong>Promotion Type:</strong> Website</p>
-                        <p><strong>Optimization Goal:</strong> Conversion (Submit Form)</p>
+                        <p><strong>Promotion Type:</strong> Lead Generation</p>
+                        <p><strong>Optimization Goal:</strong> Lead Generation</p>
                         <p><strong>Billing Event:</strong> OCPM</p>
                         <p><strong>Location:</strong> United States (6252001)</p>
                         <p><strong>Placement:</strong> TikTok</p>

@@ -362,18 +362,16 @@ async function createAdGroup() {
             campaign_id: state.campaignId,
             adgroup_name: adGroupName,
 
-            // OPTIMIZATION (Website Form - Submit form event)
-            promotion_type: 'WEBSITE',  // Website conversion
-            promotion_target_type: 'EXTERNAL_WEBSITE',  // Website Form
-            pixel_id: pixelId,  // Data connection pixel
-            optimization_event: 'FORM',  // Form submission event - EXACTLY as Postman
-            optimization_goal: 'CONVERT',  // Conversion goal (matches WEB_CONVERSIONS)
+            // OPTIMIZATION (Lead Generation - Form submission)
+            promotion_type: 'LEAD_GENERATION',  // Lead generation campaign
+            lead_gen_form_id: pixelId,  // Lead generation form ID (using pixel field for form ID)
+            optimization_goal: 'LEAD_GENERATION',  // Lead generation goal
             billing_event: 'OCPM',
 
-            // ATTRIBUTION SETTINGS
-            click_attribution_window: 'SEVEN_DAYS',  // 7-day click
-            view_attribution_window: 'ONE_DAY',  // 1-day view
-            attribution_event_count: 'EVERY',  // Event count: Every
+            // ATTRIBUTION SETTINGS (Not needed for Lead Generation, but keeping for compatibility)
+            // click_attribution_window: 'SEVEN_DAYS',  // 7-day click
+            // view_attribution_window: 'ONE_DAY',  // 1-day view
+            // attribution_event_count: 'EVERY',  // Event count: Every
 
             // PLACEMENTS
             placement_type: 'PLACEMENT_TYPE_NORMAL',  // Select placement

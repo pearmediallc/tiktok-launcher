@@ -211,7 +211,7 @@ try {
             $params = [
                 'advertiser_id' => $advertiser_id,
                 'campaign_name' => $data['campaign_name'],
-                'objective_type' => 'WEB_CONVERSIONS',
+                'objective_type' => 'LEAD_GENERATION',
                 'budget_mode' => $data['budget_mode'] ?? 'BUDGET_MODE_DAY',
                 'budget' => floatval($data['budget']),
                 'operation_status' => 'ENABLE'
@@ -286,6 +286,14 @@ try {
                 if (empty($data['pixel_id'])) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'message' => 'pixel_id is required when optimization_goal is CONVERT or VALUE']);
+                    exit;
+                }
+            }
+            
+            if ($data['optimization_goal'] === 'LEAD_GENERATION' || $data['promotion_type'] === 'LEAD_GENERATION') {
+                if (empty($data['lead_gen_form_id'])) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'lead_gen_form_id is required for Lead Generation campaigns']);
                     exit;
                 }
             }
