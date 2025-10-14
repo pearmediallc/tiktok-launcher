@@ -55,8 +55,8 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
         
         .search-input:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #1a1a1a;
+            box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
         }
         
         .search-icon {
@@ -94,13 +94,14 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
         }
         
         .advertiser-item:hover {
-            border-color: #667eea;
-            background: #f5f7ff;
+            border-color: #1a1a1a;
+            background: #f8f9fa;
         }
         
         .advertiser-item.selected {
-            border-color: #667eea;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border-color: #1a1a1a;
+            background: #f0f0f0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         .advertiser-info {

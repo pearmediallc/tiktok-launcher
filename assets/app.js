@@ -1782,17 +1782,17 @@ function showSuccessModal() {
                 </p>
                 <div style="display: flex; gap: 15px; justify-content: center;">
                     <button onclick="createNewCampaign()" style="
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        background: #1a1a1a;
                         color: white;
-                        border: none;
+                        border: 2px solid #1a1a1a;
                         padding: 14px 35px;
                         border-radius: 8px;
                         font-size: 16px;
                         font-weight: 600;
                         cursor: pointer;
-                        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-                        transition: transform 0.2s;
-                    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        box-shadow: 0 4px 15px rgba(26, 26, 26, 0.3);
+                        transition: all 0.3s;
+                    " onmouseover="this.style.background='#2d2d2d'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#1a1a1a'; this.style.transform='translateY(0)'">
                         Yes, Create Another
                     </button>
                     <button onclick="finishAndReset()" style="

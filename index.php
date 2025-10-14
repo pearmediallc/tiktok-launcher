@@ -46,7 +46,7 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated']) {
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
             height: 100vh;
             display: flex;
             justify-content: center;
@@ -103,24 +103,27 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated']) {
         input[type="text"]:focus,
         input[type="password"]:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #1a1a1a;
+            box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
         }
 
         .btn-login {
             width: 100%;
             padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1a1a1a;
             color: white;
-            border: none;
+            border: 2px solid #1a1a1a;
             border-radius: 5px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: all 0.3s;
         }
 
         .btn-login:hover {
             transform: translateY(-2px);
+            background: #2d2d2d;
+            box-shadow: 0 6px 20px rgba(26, 26, 26, 0.3);
         }
 
         .error {
