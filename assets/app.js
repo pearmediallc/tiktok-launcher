@@ -167,14 +167,15 @@ function getDaypartingData() {
         return {};
     }
 
-    // TikTok format: 168 characters (7 days × 24 hours)
-    // Each character represents 1 hour slot
+    // TikTok format: 336 characters (7 days × 48 half-hour slots)
+    // Each character represents a 30-minute slot
     // '1' = enabled, '0' = disabled
+    // First char = Monday 00:00-00:30, Second = Monday 00:30-01:00, etc.
     let dayparting = '';
 
     // TikTok API expects: Monday to Sunday ordering
-    // Our UI shows: Sunday to Saturday
-    // We need to reorder the days to match TikTok's expectation
+    // Our UI shows: Sunday to Saturday with hourly checkboxes
+    // We need to reorder the days and duplicate each hour for two 30-min slots
     
     // Process in TikTok order: Monday (1), Tuesday (2), ..., Sunday (0)
     const tikTokDayOrder = [1, 2, 3, 4, 5, 6, 0]; // Mon, Tue, Wed, Thu, Fri, Sat, Sun
@@ -183,19 +184,21 @@ function getDaypartingData() {
         const uiDay = tikTokDayOrder[tikTokDay];
         for (let hour = 0; hour < 24; hour++) {
             const checkbox = document.querySelector(`.hour-checkbox[data-day="${uiDay}"][data-hour="${hour}"]`);
-            dayparting += (checkbox && checkbox.checked) ? '1' : '0';
+            const isChecked = checkbox && checkbox.checked;
+            // Each hour creates two 30-minute slots
+            dayparting += isChecked ? '11' : '00';
         }
     }
 
-    // Must be exactly 168 characters (7 × 24)
-    if (dayparting.length !== 168) {
-        console.error('Dayparting string length is not 168:', dayparting.length);
+    // Must be exactly 336 characters (7 × 48)
+    if (dayparting.length !== 336) {
+        console.error('Dayparting string length is not 336:', dayparting.length);
         return {};
     }
     
     // Log for debugging
     console.log('Dayparting enabled, string length:', dayparting.length);
-    console.log('First 24 chars (Monday):', dayparting.substring(0, 24));
+    console.log('First 48 chars (Monday):', dayparting.substring(0, 48));
     
     return {
         dayparting: dayparting

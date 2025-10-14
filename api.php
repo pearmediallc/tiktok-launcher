@@ -249,13 +249,15 @@ try {
             }
 
             function generate_time_series($startHour, $endHour, $days = [0,1,2,3,4,5,6]) {
+                // Generate 336 character string (7 days × 48 half-hour slots)
                 $ts = '';
                 for ($d = 0; $d < 7; $d++) {
                     for ($h = 0; $h < 24; $h++) {
+                        // Each hour has 2 half-hour slots
                         if (in_array($d, $days) && $h >= $startHour && $h < $endHour) {
-                            $ts .= '1';
+                            $ts .= '11'; // Both half-hour slots enabled
                         } else {
-                            $ts .= '0';
+                            $ts .= '00'; // Both half-hour slots disabled
                         }
                     }
                 }
@@ -414,27 +416,28 @@ try {
             // Handle dayparting
             if (!empty($data['dayparting'])) {
                 logToFile("Dayparting received: length=" . strlen($data['dayparting']));
-                logToFile("First 24 chars (Monday): " . substr($data['dayparting'], 0, 24));
+                logToFile("First 48 chars (Monday 00:00-23:59): " . substr($data['dayparting'], 0, 48));
                 
-                if (strlen($data['dayparting']) !== 168) {
+                // TikTok expects 336 characters (7 days × 48 half-hour slots)
+                if (strlen($data['dayparting']) !== 336) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'dayparting must be 168-char binary string (got ' . strlen($data['dayparting']) . ' chars)']);
+                    echo json_encode(['success' => false, 'message' => 'dayparting must be 336-char binary string (7 days × 48 half-hour slots, got ' . strlen($data['dayparting']) . ' chars)']);
                     exit;
                 }
                 
                 // Validate that it only contains 0s and 1s
-                if (!preg_match('/^[01]{168}$/', $data['dayparting'])) {
+                if (!preg_match('/^[01]{336}$/', $data['dayparting'])) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'message' => 'dayparting must contain only 0s and 1s']);
                     exit;
                 }
                 
-                // Only set dayparting if at least one hour is selected
+                // Only set dayparting if at least one slot is selected
                 if (strpos($data['dayparting'], '1') !== false) {
                     $params['dayparting'] = $data['dayparting'];
-                    logToFile("Dayparting will be sent to TikTok API");
+                    logToFile("Dayparting will be sent to TikTok API (336 chars)");
                 } else {
-                    logToFile("Dayparting string has no selected hours, skipping");
+                    logToFile("Dayparting string has no selected time slots, skipping");
                 }
             } elseif (isset($data['daypart_start_hour']) && isset($data['daypart_end_hour'])) {
                 $params['dayparting'] = generate_time_series(

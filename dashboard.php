@@ -202,7 +202,8 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                             </table>
                         </div>
                         <div style="margin-top: 10px; font-size: 12px; color: #666;">
-                            <p><strong>Note:</strong> Selected hours will show ads in your advertiser's timezone. TikTok uses UTC for scheduling.</p>
+                            <p><strong>Note:</strong> Each hour checkbox controls both 30-minute slots within that hour (e.g., selecting 9am enables both 9:00-9:30 and 9:30-10:00).</p>
+                            <p>Selected hours will show ads in your advertiser's timezone. TikTok uses UTC for scheduling.</p>
                         </div>
                     </div>
                 </div>
