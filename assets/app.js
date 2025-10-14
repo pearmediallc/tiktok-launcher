@@ -1777,6 +1777,9 @@ function showSuccessModal() {
                 <p style="color: #666; margin-bottom: 30px; font-size: 14px;">
                     Your TikTok ad campaign has been created and is now live. It may take a few minutes for the campaign to appear in your TikTok Ads Manager.
                 </p>
+                <p style="color: #666; margin-bottom: 30px; font-size: 14px; font-weight: 600;">
+                    Would you like to create another campaign?
+                </p>
                 <div style="display: flex; gap: 15px; justify-content: center;">
                     <button onclick="createNewCampaign()" style="
                         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1790,7 +1793,7 @@ function showSuccessModal() {
                         box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
                         transition: transform 0.2s;
                     " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                        Create Another Campaign
+                        Yes, Create Another
                     </button>
                     <button onclick="finishAndReset()" style="
                         background: #f3f4f6;
@@ -1803,7 +1806,7 @@ function showSuccessModal() {
                         cursor: pointer;
                         transition: all 0.2s;
                     " onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
-                        Finish
+                        No, Go to Home
                     </button>
                 </div>
             </div>
@@ -1842,7 +1845,7 @@ function createNewCampaign() {
     location.reload();
 }
 
-// Finish and properly reset everything
+// Finish and redirect to advertiser selection page
 function finishAndReset() {
     // Remove success modal
     const modal = document.getElementById('success-modal');
@@ -1850,43 +1853,6 @@ function finishAndReset() {
         modal.remove();
     }
     
-    // Reset all form fields
-    const allInputs = document.querySelectorAll('input[type="text"], input[type="number"], input[type="url"], input[type="datetime-local"], textarea, select');
-    allInputs.forEach(input => {
-        if (input.type === 'select-one') {
-            input.selectedIndex = 0;
-        } else {
-            input.value = '';
-        }
-    });
-    
-    // Reset campaign and ad group IDs display
-    const campaignIdDisplay = document.getElementById('display-campaign-id');
-    if (campaignIdDisplay) {
-        campaignIdDisplay.textContent = '-';
-    }
-    
-    // Clear all ad forms except the first one
-    const adsContainer = document.getElementById('ads-container');
-    if (adsContainer) {
-        adsContainer.innerHTML = '';
-    }
-    
-    // Reset state completely
-    state.campaignId = null;
-    state.adGroupId = null;
-    state.ads = [];
-    state.mediaLibrary = [];
-    state.selectedMedia = [];
-    state.currentStep = 1;
-    
-    // Reset step UI
-    currentStep = 1;
-    updateStepUI();
-    
-    // Add first ad form back
-    addFirstAd();
-    
-    // Show toast
-    showToast('Ready to create a new campaign', 'info');
+    // Redirect to advertiser selection page (home)
+    window.location.href = 'select-advertiser.php';
 }
