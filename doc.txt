@@ -1,101 +1,3 @@
-
-Comparing v1.2 and v1.3
-Request
-Example
-Response
-Example
-Create ads
-Use this endpoint to upload your ad creatives (pictures, videos, texts, call-to-action) and create a regular ad. For different placements, the creative formats and requirements are different. Upload your ad creatives according to the placement requirements. See here to learn about how to create regular ads.
-
-Each ad group can have up to 20 or 50 regular ads.
-
-If the advertising objective of the campaign that the ad group belongs to is RF_REACH, the ad group can include at most 20 ads.
-If the advertising objective of the campaign that the ad group belongs to is PRODUCT_SALES, the ad group can include at most 20 ads (when campaign_product_source is STORE) or 50 ads (when campaign_product_source is CATALOG).
-If the advertising objective of the campaign that the ad group belongs to is not PRODUCT_SALES or RF_REACH, the ad group can include at most 50 ads.
-To create Smart Creative ads, use the /ad/aco/create/ endpoint.
-
-Before you migrate your calls to v1.3, please see Migrate campaign management APIs to learn about the highlighted differences between v1.2 and v1.3 campaign management APIs.
-
-To learn about the mapping between TikTok Ads Manager (TTAM) features at the campaign, ad group, and ad levels and the corresponding API configurations, see Mapping between campaign features on TikTok Ads Manager and API configurations.
-
-Comparing v1.2 and v1.3
-The following table outlines the differences between v1.2 and v1.3 endpoints.
-
-Changes	v1.2	v1.3
-Endpoint path
-/v1.2/ad/create/
-/v1.3/ad/create/
-Request parameter name
-product_ids
-open_url
-open_url_type
-is_creative_authorized
-dpa_fallback_type
-dpa_open_url_type
-dpa_video_tpl_id
-item_group_ids
-deeplink
-deeplink_type
-creative_authorized
-shopping_ads_fallback_type
-shopping_ads_deeplink_type
-shopping_ads_video_package_id
-Request parameter data type
-advertiser_id: number
-adgroup_id: number
-card_id: number
-advertiser_id: string
-adgroup_id: string
-card_id: string
-Request parameters deprecated in v1.3
-/
-premium_badge_id
-New request parameters
-/
-product_specific_type
-product_set_id
-sku_ids
-dynamic_format
-vertical_video_strategy
-dynamic_destination
-instant_product_page_used
-page_image_index
-brand_safety_vast_url
-viewability_postbid_partner
-viewability_vast_url
-utm_params
-key
-value
-showcase_products (including all the parameters within the object)
-tracking_app_id
-tracking_offline_event_set_ids
-music_id
-carousel_image_index
-tiktok_page_category
-phone_region_code
-phone_region_calling_code
-phone_number
-schedule_id
-deeplink_format_type
-deeplink_utm_params
-cpp_url
-aigc_disclosure_type
-tracking_message_event_set_id
-auto_message_id
-end_card_cta
-product_display_field_list
-vehicle_ids
-auto_disclaimer_types
-ad_texts
-Other changes in Request
-/
-identity_type and identity_id are now required
-Response parameter
-/
-We now return the full info of ad entity in v1.3. For details, see the Response section in this page.
-Response parameter data type
-ad_ids: number[]
-ad_ids: string[]
 Request
 Endpoint https://business-api.tiktok.com/open_api/v1.3/ad/create/
 
@@ -1536,7 +1438,6 @@ Total pages of results.
 request_id
 string
 The log ID of a request, which uniquely identifies the request.
-Example
 HTTPS/1.1 200 OK
 {
     "code": 0,
