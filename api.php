@@ -480,7 +480,7 @@ try {
             // TikTok API expects creatives array structure
             // According to docs: identity_type and identity_id are REQUIRED
             
-            // Validate that identity_id is provided
+            // Validate required fields
             if (empty($data['identity_id'])) {
                 echo json_encode([
                     'success' => false,
@@ -490,12 +490,32 @@ try {
                 exit;
             }
             
+            if (empty($data['landing_page_url'])) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Landing page URL is required for ad creation.',
+                    'code' => 40002
+                ]);
+                exit;
+            }
+            
+            // Validate URL format
+            if (!filter_var($data['landing_page_url'], FILTER_VALIDATE_URL)) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Invalid landing page URL format. Please provide a valid URL.',
+                    'code' => 40003
+                ]);
+                exit;
+            }
+            
+            // Build creative object
             $creative = [
                 'ad_name' => $data['ad_name'],
                 'ad_format' => $data['ad_format'] ?? 'SINGLE_VIDEO',
                 'ad_text' => $data['ad_text'],
-                'call_to_action' => $data['call_to_action'] ?? 'APPLY_NOW',
-                'landing_page_url' => $data['landing_page_url'],
+                'call_to_action' => $data['call_to_action'] ?? 'LEARN_MORE',
+                'landing_page_url' => $data['landing_page_url'], // Required even for Lead Gen
                 'identity_type' => $data['identity_type'] ?? 'CUSTOMIZED_USER',
                 'identity_id' => $data['identity_id']
             ];
@@ -524,11 +544,18 @@ try {
                 'creatives' => [$creative]
             ];
 
+            logToFile("============ CREATE AD REQUEST ============");
             logToFile("Create Ad Request: " . json_encode($params, JSON_PRETTY_PRINT));
 
             $response = $ad->create($params);
 
+            logToFile("============ CREATE AD RESPONSE ============");
             logToFile("Create Ad Response: " . json_encode($response, JSON_PRETTY_PRINT));
+            logToFile("Response Code: " . ($response->code ?? 'null'));
+            logToFile("Response Message: " . ($response->message ?? 'null'));
+            if (isset($response->errors)) {
+                logToFile("Response Errors: " . json_encode($response->errors, JSON_PRETTY_PRINT));
+            }
 
             // Check for success
             $isSuccess = (empty($response->code) || $response->code == 0) && isset($response->data);

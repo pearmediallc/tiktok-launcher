@@ -514,8 +514,8 @@ function addAdForm(index, duplicateFrom = null) {
         </div>
 
         <div class="form-group">
-            <label>Destination URL</label>
-            <input type="text" id="destination-url-${index}" placeholder="https://example.com" required>
+            <label>Destination URL (Thank You Page)</label>
+            <input type="text" id="destination-url-${index}" placeholder="https://example.com/thank-you" required>
         </div>
 
         <div class="form-group">
