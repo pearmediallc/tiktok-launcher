@@ -59,10 +59,12 @@ function logToFile($message) {
 }
 
 // Handle API requests
-$action = $_GET['action'] ?? $_POST['action'] ?? '';
+$requestData = json_decode(file_get_contents('php://input'), true);
+
+// Get action from GET, POST, or JSON body
+$action = $_GET['action'] ?? $_POST['action'] ?? $requestData['action'] ?? '';
 
 // Log incoming request
-$requestData = json_decode(file_get_contents('php://input'), true);
 logToFile("============ INCOMING REQUEST ============");
 logToFile("Action: {$action}");
 logToFile("Request Data: " . json_encode($requestData, JSON_PRETTY_PRINT));
@@ -139,8 +141,7 @@ try {
             
         case 'set_advertiser':
             // Set the selected advertiser ID for the session
-            $data = json_decode(file_get_contents('php://input'), true);
-            $selectedAdvertiserId = $data['advertiser_id'] ?? '';
+            $selectedAdvertiserId = $requestData['advertiser_id'] ?? '';
             
             logToFile("Set Advertiser Request - ID: {$selectedAdvertiserId}");
             
@@ -205,7 +206,7 @@ try {
             
         case 'create_campaign':
             $campaign = new Campaign($config);
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $requestData;
 
             $params = [
                 'advertiser_id' => $advertiser_id,
@@ -241,7 +242,7 @@ try {
 
         case 'create_adgroup':
             $adGroup = new AdGroup($config);
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $requestData;
 
             function is_valid_datetime($s) {
                 return preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $s);
@@ -446,7 +447,7 @@ try {
 
         case 'create_ad':
             $ad = new Ad($config);
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $requestData;
 
             // TikTok API expects creatives array structure
             // According to docs: identity_type and identity_id are REQUIRED
@@ -531,7 +532,7 @@ try {
 
         case 'upload_thumbnail_as_cover':
             // Upload video thumbnail URL as cover image to TikTok
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $requestData;
             
             if (empty($data['thumbnail_url']) || empty($data['video_id'])) {
                 throw new Exception('thumbnail_url and video_id are required');
@@ -1292,7 +1293,7 @@ try {
 
         case 'get_adgroups':
             $adGroup = new AdGroup($config);
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $requestData;
 
             $response = $adGroup->getSelf([
                 'advertiser_id' => $advertiser_id,
@@ -1307,7 +1308,7 @@ try {
 
         case 'get_ads':
             $ad = new Ad($config);
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $requestData;
 
             $response = $ad->getSelf([
                 'advertiser_id' => $advertiser_id,
@@ -1322,7 +1323,7 @@ try {
 
         case 'publish_ads':
             $ad = new Ad($config);
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $requestData;
 
             $response = $ad->statusUpdate([
                 'advertiser_id' => $advertiser_id,
@@ -1339,7 +1340,7 @@ try {
 
         case 'duplicate_ad':
             $ad = new Ad($config);
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $requestData;
 
             $originalAd = $ad->getSelf([
                 'advertiser_id' => $advertiser_id,
@@ -1382,7 +1383,7 @@ try {
 
         case 'duplicate_adgroup':
             $adGroup = new AdGroup($config);
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $requestData;
 
             $originalAdGroup = $adGroup->getSelf([
                 'advertiser_id' => $advertiser_id,
@@ -1582,7 +1583,7 @@ try {
             
         case 'add_existing_media':
             // Allow manual addition of existing TikTok media IDs
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $requestData;
             
             $storageFile = __DIR__ . '/media_storage.json';
             $storage = json_decode(file_get_contents($storageFile), true) ?? ['images' => [], 'videos' => []];
