@@ -167,18 +167,30 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
 
         async function loadAdvertiserAccounts() {
             try {
-                const response = await fetch('api.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'get_advertisers' })
+                const response = await fetch('api.php?action=get_advertisers', {
+                    method: 'GET',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    }
                 });
 
-                const result = await response.json();
+                const responseText = await response.text();
+                console.log('Raw response:', responseText);
+                
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('Failed to parse response:', parseError);
+                    showError('Invalid response from server. Please check the logs.');
+                    return;
+                }
                 
                 if (result.success) {
+                    console.log('Advertisers loaded:', result.data);
                     displayAdvertiserAccounts(result.data);
                 } else {
-                    showError('Failed to load advertiser accounts: ' + (result.error || 'Unknown error'));
+                    showError('Failed to load advertiser accounts: ' + (result.message || result.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error loading advertisers:', error);
@@ -201,14 +213,15 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
 
             let html = '<div class="advertiser-list">';
             advertisers.forEach((advertiser, index) => {
-                const isActive = advertiser.status === 'STATUS_ENABLE';
+                // Status field may not be included in response, assume active if not present
+                const isActive = !advertiser.status || advertiser.status === 'STATUS_ENABLE' || advertiser.status === 'ENABLE';
                 html += `
                     <div class="advertiser-item" onclick="selectAdvertiser('${advertiser.advertiser_id}', this)">
                         <div class="advertiser-info">
                             <div class="advertiser-name">
                                 ${advertiser.advertiser_name || `Advertiser ${index + 1}`}
-                                <span class="advertiser-status ${isActive ? '' : 'inactive'}">
-                                    ${isActive ? 'Active' : 'Inactive'}
+                                <span class="advertiser-status">
+                                    Active
                                 </span>
                             </div>
                             <div class="advertiser-id">ID: ${advertiser.advertiser_id}</div>
