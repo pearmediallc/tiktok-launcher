@@ -104,9 +104,9 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 </div>
 
                 <div class="form-section">
-                    <h3>Lead Form Configuration</h3>
+                    <h3>Pixel Configuration (for Form Tracking)</h3>
                     <div class="form-group">
-                        <label>Lead Form Selection Method</label>
+                        <label>Pixel Selection Method</label>
                         <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                             <label style="display: flex; align-items: center; gap: 5px;">
                                 <input type="radio" name="pixel-method" value="dropdown" checked onchange="togglePixelInput()">
@@ -119,16 +119,16 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                         </div>
                     </div>
                     <div class="form-group" id="pixel-dropdown-container">
-                        <label>Select Lead Generation Form</label>
+                        <label>Select Pixel for Form Tracking</label>
                         <select id="lead-gen-form-id">
-                            <option value="">Loading forms...</option>
+                            <option value="">Loading pixels...</option>
                         </select>
-                        <small>Select the lead generation form for collecting leads.</small>
+                        <small>Select the pixel that will track form submissions on your website.</small>
                     </div>
                     <div class="form-group" id="pixel-manual-container" style="display: none;">
-                        <label>Lead Form ID (Required)</label>
-                        <input type="text" id="pixel-manual-input" placeholder="Enter numeric Lead Form ID (e.g., 1234567890)" style="width: 100%; padding: 8px;">
-                        <small>Go to TikTok Ads Manager > Assets > Lead Generation > Forms. Find your form and copy the numeric form ID.</small>
+                        <label>Pixel ID (Required)</label>
+                        <input type="text" id="pixel-manual-input" placeholder="Enter numeric Pixel ID (e.g., 1234567890)" style="width: 100%; padding: 8px;">
+                        <small>Go to TikTok Ads Manager > Assets > Events > Web Events. Find your pixel and copy the numeric pixel ID.</small>
                     </div>
                 </div>
 
@@ -164,8 +164,8 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 <div class="form-section">
                     <h3>Optimization & Placement</h3>
                     <div class="form-info">
-                        <p><strong>Promotion Type:</strong> Lead Generation</p>
-                        <p><strong>Optimization Goal:</strong> Lead Generation</p>
+                        <p><strong>Promotion Type:</strong> Website (Lead Generation)</p>
+                        <p><strong>Optimization Goal:</strong> Form Conversions</p>
                         <p><strong>Billing Event:</strong> OCPM</p>
                         <p><strong>Location:</strong> United States (6252001)</p>
                         <p><strong>Placement:</strong> TikTok</p>

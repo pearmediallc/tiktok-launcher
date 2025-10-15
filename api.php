@@ -290,10 +290,22 @@ try {
                 }
             }
             
-            if ($data['optimization_goal'] === 'LEAD_GENERATION' || $data['promotion_type'] === 'LEAD_GENERATION') {
+            // For Lead Generation via website forms (CONVERT + FORM event)
+            if ($data['optimization_goal'] === 'CONVERT' && 
+                isset($data['optimization_event']) && $data['optimization_event'] === 'FORM') {
+                if (empty($data['pixel_id'])) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'pixel_id is required for Lead Generation campaigns with FORM optimization']);
+                    exit;
+                }
+            }
+            
+            // For instant form Lead Generation (if using lead_gen_form_id)
+            if ($data['optimization_goal'] === 'LEAD_GENERATION' && 
+                (!isset($data['promotion_target_type']) || $data['promotion_target_type'] === 'INSTANT_PAGE')) {
                 if (empty($data['lead_gen_form_id'])) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'lead_gen_form_id is required for Lead Generation campaigns']);
+                    echo json_encode(['success' => false, 'message' => 'lead_gen_form_id is required for Lead Generation campaigns with Instant Forms']);
                     exit;
                 }
             }

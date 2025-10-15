@@ -362,17 +362,18 @@ async function createAdGroup() {
             campaign_id: state.campaignId,
             adgroup_name: adGroupName,
 
-            // OPTIMIZATION (Lead Generation - Form submission)
-            promotion_type: 'WEBSITE',  // WEBSITE is required for Lead Gen with landing pages
-            promotion_target_type: 'EXTERNAL_WEBSITE',  // Use external website for lead generation
-            lead_gen_form_id: pixelId,  // Lead generation form ID (using pixel field for form ID)
-            optimization_goal: 'LEAD_GENERATION',  // Lead generation goal
+            // OPTIMIZATION (Lead Generation via Website Forms)
+            promotion_type: 'WEBSITE',  // WEBSITE for external lead forms
+            promotion_target_type: 'EXTERNAL_WEBSITE',  // External website for lead generation
+            pixel_id: pixelId,  // Pixel ID for tracking form conversions
+            optimization_goal: 'CONVERT',  // CONVERT for website lead forms
+            optimization_event: 'FORM',  // FORM event for lead generation
             billing_event: 'OCPM',
 
-            // ATTRIBUTION SETTINGS (Not needed for Lead Generation, but keeping for compatibility)
-            // click_attribution_window: 'SEVEN_DAYS',  // 7-day click
-            // view_attribution_window: 'ONE_DAY',  // 1-day view
-            // attribution_event_count: 'EVERY',  // Event count: Every
+            // ATTRIBUTION SETTINGS (Required for Lead Generation)
+            click_attribution_window: 'SEVEN_DAYS',  // 7-day click attribution
+            view_attribution_window: 'ONE_DAY',  // 1-day view attribution
+            attribution_event_count: 'EVERY',  // Count every conversion
 
             // PLACEMENTS
             placement_type: 'PLACEMENT_TYPE_NORMAL',  // Select placement
