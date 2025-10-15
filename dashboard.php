@@ -66,15 +66,14 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                         <div class="form-group">
                             <label>Budget Mode</label>
                             <select id="campaign-budget-mode" onchange="toggleCampaignBudget()">
-                                <option value="BUDGET_MODE_INFINITE" selected>No Campaign Budget (Ad Group Level)</option>
-                                <option value="BUDGET_MODE_DAY">Daily Budget</option>
+                                <option value="BUDGET_MODE_DAY" selected>Daily Budget</option>
                                 <option value="BUDGET_MODE_DYNAMIC_DAILY_BUDGET">Dynamic Daily Budget</option>
                                 <option value="BUDGET_MODE_TOTAL">Total Budget (Lifetime)</option>
                             </select>
                         </div>
-                        <div class="form-group" id="campaign-budget-container" style="display: none;">
-                            <label>Budget Amount ($)</label>
-                            <input type="number" id="campaign-budget" placeholder="50" min="20">
+                        <div class="form-group" id="campaign-budget-container">
+                            <label>Budget Amount ($) - Set low, control at ad group</label>
+                            <input type="number" id="campaign-budget" value="20" min="20" placeholder="20">
                         </div>
                     </div>
                 </div>

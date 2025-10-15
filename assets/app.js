@@ -205,51 +205,28 @@ function getDaypartingData() {
     };
 }
 
-// Toggle CBO and update budget mode options
+// Toggle CBO and update budget requirements
 function toggleCBO() {
     const cboEnabled = document.getElementById('campaign-cbo').checked;
-    const budgetModeSelect = document.getElementById('campaign-budget-mode');
-    const currentValue = budgetModeSelect.value;
-    
-    // Clear options
-    budgetModeSelect.innerHTML = '';
+    const budgetInput = document.getElementById('campaign-budget');
     
     if (cboEnabled) {
-        // CBO enabled - no BUDGET_MODE_INFINITE allowed
-        budgetModeSelect.innerHTML = `
-            <option value="BUDGET_MODE_DAY">Daily Budget</option>
-            <option value="BUDGET_MODE_DYNAMIC_DAILY_BUDGET">Dynamic Daily Budget</option>
-            <option value="BUDGET_MODE_TOTAL">Total Budget (Lifetime)</option>
-        `;
-        // Force show budget field for CBO
-        document.getElementById('campaign-budget-container').style.display = 'block';
-        document.getElementById('campaign-budget').setAttribute('required', 'true');
+        // CBO enabled - campaign budget is important
+        budgetInput.setAttribute('required', 'true');
+        budgetInput.min = 50; // Higher minimum for CBO
+        if (budgetInput.value < 50) budgetInput.value = 50;
     } else {
-        // CBO disabled - BUDGET_MODE_INFINITE is allowed
-        budgetModeSelect.innerHTML = `
-            <option value="BUDGET_MODE_INFINITE" selected>No Campaign Budget (Ad Group Level)</option>
-            <option value="BUDGET_MODE_DAY">Daily Budget</option>
-            <option value="BUDGET_MODE_DYNAMIC_DAILY_BUDGET">Dynamic Daily Budget</option>
-            <option value="BUDGET_MODE_TOTAL">Total Budget (Lifetime)</option>
-        `;
-        budgetModeSelect.value = 'BUDGET_MODE_INFINITE';
-        toggleCampaignBudget();
+        // CBO disabled - can use minimum budget
+        budgetInput.removeAttribute('required');
+        budgetInput.min = 20; // Minimum budget
+        if (!budgetInput.value) budgetInput.value = 20;
     }
 }
 
-// Toggle campaign budget visibility
+// Toggle campaign budget visibility (kept for compatibility)
 function toggleCampaignBudget() {
-    const budgetMode = document.getElementById('campaign-budget-mode').value;
-    const budgetContainer = document.getElementById('campaign-budget-container');
-    const cboEnabled = document.getElementById('campaign-cbo').checked;
-    
-    if (budgetMode === 'BUDGET_MODE_INFINITE' && !cboEnabled) {
-        budgetContainer.style.display = 'none';
-        document.getElementById('campaign-budget').removeAttribute('required');
-    } else {
-        budgetContainer.style.display = 'block';
-        document.getElementById('campaign-budget').setAttribute('required', 'true');
-    }
+    // Budget is always visible and required for Lead Generation campaigns
+    // The actual budget control happens at ad group level
 }
 
 // Step navigation
@@ -298,9 +275,10 @@ async function createCampaign() {
         return;
     }
     
-    // Validate budget for non-INFINITE modes
-    if (campaignBudgetMode !== 'BUDGET_MODE_INFINITE' && (!campaignBudget || campaignBudget < 20)) {
-        showToast('Please enter a valid budget amount (minimum $20)', 'error');
+    // Budget is always required for Lead Generation campaigns
+    const minBudget = cboEnabled ? 50 : 20;
+    if (!campaignBudget || campaignBudget < minBudget) {
+        showToast(`Please enter a valid budget amount (minimum $${minBudget})`, 'error');
         return;
     }
 
@@ -309,17 +287,13 @@ async function createCampaign() {
     try {
         const params = {
             campaign_name: campaignName,
-            budget_mode: campaignBudgetMode
+            budget_mode: campaignBudgetMode,
+            budget: campaignBudget || 20 // Always include budget
         };
         
         // Add CBO parameter if enabled
         if (cboEnabled) {
             params.budget_optimize_on = true;
-        }
-        
-        // Only add budget if not using BUDGET_MODE_INFINITE
-        if (campaignBudgetMode !== 'BUDGET_MODE_INFINITE') {
-            params.budget = campaignBudget;
         }
         
         // Add schedule times if provided
