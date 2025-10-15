@@ -205,10 +205,51 @@ function getDaypartingData() {
     };
 }
 
-// Toggle campaign budget visibility (currently not hiding, just for future use)
+// Toggle CBO and update budget mode options
+function toggleCBO() {
+    const cboEnabled = document.getElementById('campaign-cbo').checked;
+    const budgetModeSelect = document.getElementById('campaign-budget-mode');
+    const currentValue = budgetModeSelect.value;
+    
+    // Clear options
+    budgetModeSelect.innerHTML = '';
+    
+    if (cboEnabled) {
+        // CBO enabled - no BUDGET_MODE_INFINITE allowed
+        budgetModeSelect.innerHTML = `
+            <option value="BUDGET_MODE_DAY">Daily Budget</option>
+            <option value="BUDGET_MODE_DYNAMIC_DAILY_BUDGET">Dynamic Daily Budget</option>
+            <option value="BUDGET_MODE_TOTAL">Total Budget (Lifetime)</option>
+        `;
+        // Force show budget field for CBO
+        document.getElementById('campaign-budget-container').style.display = 'block';
+        document.getElementById('campaign-budget').setAttribute('required', 'true');
+    } else {
+        // CBO disabled - BUDGET_MODE_INFINITE is allowed
+        budgetModeSelect.innerHTML = `
+            <option value="BUDGET_MODE_INFINITE" selected>No Campaign Budget (Ad Group Level)</option>
+            <option value="BUDGET_MODE_DAY">Daily Budget</option>
+            <option value="BUDGET_MODE_DYNAMIC_DAILY_BUDGET">Dynamic Daily Budget</option>
+            <option value="BUDGET_MODE_TOTAL">Total Budget (Lifetime)</option>
+        `;
+        budgetModeSelect.value = 'BUDGET_MODE_INFINITE';
+        toggleCampaignBudget();
+    }
+}
+
+// Toggle campaign budget visibility
 function toggleCampaignBudget() {
-    // Keep budget field visible but optional for all modes
-    // User can leave it empty to set budget at ad group level
+    const budgetMode = document.getElementById('campaign-budget-mode').value;
+    const budgetContainer = document.getElementById('campaign-budget-container');
+    const cboEnabled = document.getElementById('campaign-cbo').checked;
+    
+    if (budgetMode === 'BUDGET_MODE_INFINITE' && !cboEnabled) {
+        budgetContainer.style.display = 'none';
+        document.getElementById('campaign-budget').removeAttribute('required');
+    } else {
+        budgetContainer.style.display = 'block';
+        document.getElementById('campaign-budget').setAttribute('required', 'true');
+    }
 }
 
 // Step navigation
@@ -245,6 +286,7 @@ function prevStep() {
 // Campaign creation
 async function createCampaign() {
     const campaignName = document.getElementById('campaign-name').value.trim();
+    const cboEnabled = document.getElementById('campaign-cbo').checked;
     const campaignBudgetMode = document.getElementById('campaign-budget-mode').value;
     const campaignBudget = parseFloat(document.getElementById('campaign-budget').value) || 0;
     const startDate = document.getElementById('campaign-start-date').value;
@@ -253,6 +295,12 @@ async function createCampaign() {
     // Validate required fields
     if (!campaignName) {
         showToast('Please enter campaign name', 'error');
+        return;
+    }
+    
+    // Validate budget for non-INFINITE modes
+    if (campaignBudgetMode !== 'BUDGET_MODE_INFINITE' && (!campaignBudget || campaignBudget < 20)) {
+        showToast('Please enter a valid budget amount (minimum $20)', 'error');
         return;
     }
 
@@ -264,12 +312,14 @@ async function createCampaign() {
             budget_mode: campaignBudgetMode
         };
         
-        // If budget is provided, use it. Otherwise use minimum budget of 20
-        // This allows TikTok to accept the campaign but actual budget will be at ad group level
-        if (campaignBudget && campaignBudget >= 20) {
+        // Add CBO parameter if enabled
+        if (cboEnabled) {
+            params.budget_optimize_on = true;
+        }
+        
+        // Only add budget if not using BUDGET_MODE_INFINITE
+        if (campaignBudgetMode !== 'BUDGET_MODE_INFINITE') {
             params.budget = campaignBudget;
-        } else {
-            params.budget = 20; // Minimum budget to satisfy TikTok API
         }
         
         // Add schedule times if provided

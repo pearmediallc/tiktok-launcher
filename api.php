@@ -213,13 +213,19 @@ try {
                 'advertiser_id' => $advertiser_id,
                 'campaign_name' => $data['campaign_name'],
                 'objective_type' => 'LEAD_GENERATION',
-                'budget_mode' => $data['budget_mode'] ?? 'BUDGET_MODE_DAY',
+                'budget_mode' => $data['budget_mode'] ?? 'BUDGET_MODE_INFINITE',
                 'operation_status' => 'ENABLE'
             ];
+            
+            // Add CBO if enabled
+            if (!empty($data['budget_optimize_on']) && $data['budget_optimize_on'] === true) {
+                $params['budget_optimize_on'] = true;
+            }
 
-            // Budget is required for non-CBO campaigns
-            // Use provided budget or minimum budget of 20
-            $params['budget'] = floatval($data['budget'] ?? 20);
+            // Budget is required unless using BUDGET_MODE_INFINITE (only valid when CBO is disabled)
+            if ($data['budget_mode'] !== 'BUDGET_MODE_INFINITE') {
+                $params['budget'] = floatval($data['budget'] ?? 20);
+            }
 
             // Schedule times are optional for BUDGET_MODE_INFINITE
             if (!empty($data['schedule_start_time'])) {

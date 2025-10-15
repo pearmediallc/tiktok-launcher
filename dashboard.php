@@ -54,22 +54,29 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 </div>
 
                 <div class="form-section">
-                    <h3>Budget (Optional - Set at Ad Group Level)</h3>
+                    <h3>Budget Configuration</h3>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="campaign-cbo" onchange="toggleCBO()">
+                            Enable Campaign Budget Optimization (CBO)
+                        </label>
+                        <small>When disabled, you can set budget at ad group level for better control</small>
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Budget Mode</label>
                             <select id="campaign-budget-mode" onchange="toggleCampaignBudget()">
-                                <option value="BUDGET_MODE_DAY" selected>Daily Budget</option>
+                                <option value="BUDGET_MODE_INFINITE" selected>No Campaign Budget (Ad Group Level)</option>
+                                <option value="BUDGET_MODE_DAY">Daily Budget</option>
                                 <option value="BUDGET_MODE_DYNAMIC_DAILY_BUDGET">Dynamic Daily Budget</option>
                                 <option value="BUDGET_MODE_TOTAL">Total Budget (Lifetime)</option>
                             </select>
                         </div>
-                        <div class="form-group" id="campaign-budget-container">
-                            <label>Budget Amount ($) - Optional</label>
-                            <input type="number" id="campaign-budget" placeholder="Leave empty to set at ad group level" min="20">
+                        <div class="form-group" id="campaign-budget-container" style="display: none;">
+                            <label>Budget Amount ($)</label>
+                            <input type="number" id="campaign-budget" placeholder="50" min="20">
                         </div>
                     </div>
-                    <small>TikTok recommends setting budget at the ad group level for better control.</small>
                 </div>
 
                 <div class="form-section">
