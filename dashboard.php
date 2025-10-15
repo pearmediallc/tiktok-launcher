@@ -164,7 +164,7 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 <div class="form-section">
                     <h3>Optimization & Placement</h3>
                     <div class="form-info">
-                        <p><strong>Promotion Type:</strong> Website (Lead Generation)</p>
+                        <p><strong>Promotion Type:</strong> Lead Generation (External Website)</p>
                         <p><strong>Optimization Goal:</strong> Form Conversions</p>
                         <p><strong>Billing Event:</strong> OCPM</p>
                         <p><strong>Location:</strong> United States (6252001)</p>

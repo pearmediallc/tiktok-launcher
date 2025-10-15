@@ -363,10 +363,10 @@ async function createAdGroup() {
             adgroup_name: adGroupName,
 
             // OPTIMIZATION (Lead Generation via Website Forms)
-            promotion_type: 'WEBSITE',  // WEBSITE for external lead forms
+            promotion_type: 'LEAD_GENERATION',  // LEAD_GENERATION for lead gen campaigns
             promotion_target_type: 'EXTERNAL_WEBSITE',  // External website for lead generation
             pixel_id: pixelId,  // Pixel ID for tracking form conversions
-            optimization_goal: 'CONVERT',  // CONVERT for website lead forms
+            optimization_goal: 'CONVERT',  // CONVERT for lead forms
             optimization_event: 'FORM',  // FORM event for lead generation
             billing_event: 'OCPM',
 
