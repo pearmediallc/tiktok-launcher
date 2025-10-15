@@ -205,18 +205,10 @@ function getDaypartingData() {
     };
 }
 
-// Toggle campaign budget visibility
+// Toggle campaign budget visibility (currently not hiding, just for future use)
 function toggleCampaignBudget() {
-    const budgetMode = document.getElementById('campaign-budget-mode').value;
-    const budgetContainer = document.getElementById('campaign-budget-container');
-    
-    if (budgetMode === 'BUDGET_MODE_INFINITE') {
-        budgetContainer.style.display = 'none';
-        document.getElementById('campaign-budget').removeAttribute('required');
-    } else {
-        budgetContainer.style.display = 'block';
-        document.getElementById('campaign-budget').setAttribute('required', 'true');
-    }
+    // Keep budget field visible but optional for all modes
+    // User can leave it empty to set budget at ad group level
 }
 
 // Step navigation
@@ -259,37 +251,31 @@ async function createCampaign() {
     const endDate = document.getElementById('campaign-end-date').value;
 
     // Validate required fields
-    if (!campaignName || !startDate) {
-        showToast('Please enter campaign name and start date', 'error');
-        return;
-    }
-    
-    // Only require budget if not using BUDGET_MODE_INFINITE
-    if (campaignBudgetMode !== 'BUDGET_MODE_INFINITE' && (!campaignBudget || campaignBudget < 20)) {
-        showToast('Please enter a valid budget amount (minimum $20)', 'error');
+    if (!campaignName) {
+        showToast('Please enter campaign name', 'error');
         return;
     }
 
     showLoading();
 
     try {
-        // Convert datetime to TikTok format: "YYYY-MM-DD HH:MM:SS" in UTC
-        const startDateTime = new Date(startDate);
-        const scheduleStartTime = formatToTikTokDateTime(startDateTime);
-
         const params = {
             campaign_name: campaignName,
             budget_mode: campaignBudgetMode
         };
         
-        // Only add budget if not using BUDGET_MODE_INFINITE
-        if (campaignBudgetMode !== 'BUDGET_MODE_INFINITE') {
+        // If budget is provided, use it. Otherwise use minimum budget of 20
+        // This allows TikTok to accept the campaign but actual budget will be at ad group level
+        if (campaignBudget && campaignBudget >= 20) {
             params.budget = campaignBudget;
+        } else {
+            params.budget = 20; // Minimum budget to satisfy TikTok API
         }
         
-        // Add schedule_start_time only if not BUDGET_MODE_INFINITE
-        if (campaignBudgetMode !== 'BUDGET_MODE_INFINITE') {
-            params.schedule_start_time = scheduleStartTime;
+        // Add schedule times if provided
+        if (startDate) {
+            const startDateTime = new Date(startDate);
+            params.schedule_start_time = formatToTikTokDateTime(startDateTime);
         }
 
         // Store budget mode for ad group to use
