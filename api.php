@@ -208,15 +208,21 @@ try {
             $campaign = new Campaign($config);
             $data = $requestData;
 
+            // Base parameters
             $params = [
                 'advertiser_id' => $advertiser_id,
                 'campaign_name' => $data['campaign_name'],
                 'objective_type' => 'LEAD_GENERATION',
-                'budget_mode' => $data['budget_mode'] ?? 'BUDGET_MODE_DAY',
-                'budget' => floatval($data['budget']),
+                'budget_mode' => $data['budget_mode'] ?? 'BUDGET_MODE_INFINITE',
                 'operation_status' => 'ENABLE'
             ];
 
+            // Only add budget if not BUDGET_MODE_INFINITE
+            if ($data['budget_mode'] !== 'BUDGET_MODE_INFINITE' && !empty($data['budget'])) {
+                $params['budget'] = floatval($data['budget']);
+            }
+
+            // Schedule times are optional for BUDGET_MODE_INFINITE
             if (!empty($data['schedule_start_time'])) {
                 $params['schedule_start_time'] = $data['schedule_start_time'];
             }

@@ -205,6 +205,20 @@ function getDaypartingData() {
     };
 }
 
+// Toggle campaign budget visibility
+function toggleCampaignBudget() {
+    const budgetMode = document.getElementById('campaign-budget-mode').value;
+    const budgetContainer = document.getElementById('campaign-budget-container');
+    
+    if (budgetMode === 'BUDGET_MODE_INFINITE') {
+        budgetContainer.style.display = 'none';
+        document.getElementById('campaign-budget').removeAttribute('required');
+    } else {
+        budgetContainer.style.display = 'block';
+        document.getElementById('campaign-budget').setAttribute('required', 'true');
+    }
+}
+
 // Step navigation
 function nextStep() {
     if (state.currentStep < 4) {
@@ -240,17 +254,19 @@ function prevStep() {
 async function createCampaign() {
     const campaignName = document.getElementById('campaign-name').value.trim();
     const campaignBudgetMode = document.getElementById('campaign-budget-mode').value;
-    const campaignBudget = parseFloat(document.getElementById('campaign-budget').value);
+    const campaignBudget = parseFloat(document.getElementById('campaign-budget').value) || 0;
     const startDate = document.getElementById('campaign-start-date').value;
     const endDate = document.getElementById('campaign-end-date').value;
 
-    if (!campaignName || !campaignBudget || !startDate) {
-        showToast('Please enter campaign name, budget, and start date', 'error');
+    // Validate required fields
+    if (!campaignName || !startDate) {
+        showToast('Please enter campaign name and start date', 'error');
         return;
     }
-
-    if (campaignBudget < 20) {
-        showToast('Minimum campaign budget is $20', 'error');
+    
+    // Only require budget if not using BUDGET_MODE_INFINITE
+    if (campaignBudgetMode !== 'BUDGET_MODE_INFINITE' && (!campaignBudget || campaignBudget < 20)) {
+        showToast('Please enter a valid budget amount (minimum $20)', 'error');
         return;
     }
 
@@ -263,10 +279,18 @@ async function createCampaign() {
 
         const params = {
             campaign_name: campaignName,
-            budget_mode: campaignBudgetMode,
-            budget: campaignBudget,
-            schedule_start_time: scheduleStartTime
+            budget_mode: campaignBudgetMode
         };
+        
+        // Only add budget if not using BUDGET_MODE_INFINITE
+        if (campaignBudgetMode !== 'BUDGET_MODE_INFINITE') {
+            params.budget = campaignBudget;
+        }
+        
+        // Add schedule_start_time only if not BUDGET_MODE_INFINITE
+        if (campaignBudgetMode !== 'BUDGET_MODE_INFINITE') {
+            params.schedule_start_time = scheduleStartTime;
+        }
 
         // Store budget mode for ad group to use
         state.campaignBudgetMode = campaignBudgetMode;
