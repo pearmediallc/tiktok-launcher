@@ -13,7 +13,7 @@ if (file_exists(__DIR__ . '/.env')) {
 }
 
 // Check authentication
-if (!isset($_SESSION['access_token'])) {
+if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Not authenticated']);
     exit;
@@ -29,8 +29,9 @@ require_once __DIR__ . '/sdk/Ad.php';
 require_once __DIR__ . '/sdk/TikTokBusinessSDK.php';
 
 // Load SDK configuration
+// Use TikTok access token from environment for API calls
 $config = [
-    'access_token' => $_SESSION['access_token'],
+    'access_token' => $_ENV['TIKTOK_ACCESS_TOKEN'] ?? '',
     'advertiser_id' => $advertiser_id
 ];
 
@@ -278,7 +279,7 @@ try {
                 CURLOPT_URL => $url,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_HTTPHEADER => [
-                    "Access-Token: " . $_SESSION['access_token'],
+                    "Access-Token: " . ($_ENV['TIKTOK_ACCESS_TOKEN'] ?? ''),
                     "Content-Type: application/json"
                 ],
             ]);

@@ -2,7 +2,7 @@
 session_start();
 
 // Check if user is logged in
-if (!isset($_SESSION['access_token'])) {
+if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
     header('Location: index.php');
     exit;
 }

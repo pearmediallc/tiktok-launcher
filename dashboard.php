@@ -6,6 +6,12 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
     header('Location: index.php');
     exit;
 }
+
+// Check if advertiser is selected
+if (!isset($_SESSION['selected_advertiser_id'])) {
+    header('Location: select-advertiser.php');
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
