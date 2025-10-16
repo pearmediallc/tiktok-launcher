@@ -102,14 +102,7 @@ if (!isset($_SESSION['selected_advertiser_id'])) {
             </div>
 
             <div class="form-section">
-                <h3>Budget & Schedule</h3>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Campaign Budget ($)</label>
-                        <input type="number" id="campaign-budget" value="50" min="50" placeholder="50" required>
-                        <small>Minimum budget for Smart+ campaigns: $50</small>
-                    </div>
-                </div>
+                <h3>Schedule</h3>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Start Date & Time (Optional)</label>

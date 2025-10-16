@@ -72,14 +72,135 @@ logToFile("Request Data: " . json_encode($requestData, JSON_PRETTY_PRINT));
 header('Content-Type: application/json');
 
 try {
-    // Handle Smart+ Campaign actions separately
-    if (in_array($action, ['create_smart_campaign', 'create_smart_adgroup', 'create_smart_ad', 'get_smart_campaign_insights'])) {
-        // Forward to Smart+ API
-        require_once 'api-smart.php';
-        exit;
-    }
-    
     switch ($action) {
+        // Smart+ Campaign actions
+        case 'create_smart_campaign':
+            $data = $requestData;
+            
+            // Smart+ campaigns don't need budget at campaign level
+            $params = [
+                'advertiser_id' => $advertiser_id,
+                'campaign_name' => $data['campaign_name'],
+                'objective_type' => 'LEAD_GENERATION',
+                'operation_status' => 'ENABLE'
+            ];
+            
+            // Add schedule times if provided
+            if (!empty($data['schedule_start_time'])) {
+                $params['schedule_start_time'] = $data['schedule_start_time'];
+            }
+            if (!empty($data['schedule_end_time'])) {
+                $params['schedule_end_time'] = $data['schedule_end_time'];
+            }
+            
+            logToFile("Smart+ Campaign Params: " . json_encode($params, JSON_PRETTY_PRINT));
+            
+            $campaign = new Campaign($config);
+            $result = $campaign->create($params);
+            
+            if ($result['code'] == 0) {
+                echo json_encode([
+                    'success' => true,
+                    'data' => $result['data'],
+                    'message' => 'Smart+ Campaign created successfully'
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => $result['message'] ?? 'Failed to create Smart+ campaign',
+                    'error' => $result
+                ]);
+            }
+            break;
+            
+        case 'create_smart_adgroup':
+            $data = $requestData;
+            
+            // Smart+ Ad Group parameters with budget
+            $params = [
+                'advertiser_id' => $advertiser_id,
+                'campaign_id' => $data['campaign_id'],
+                'adgroup_name' => $data['adgroup_name'],
+                'promotion_type' => 'LEAD_GENERATION',
+                'promotion_target_type' => 'EXTERNAL_WEBSITE',
+                'pixel_id' => $data['pixel_id'],
+                'optimization_goal' => 'CONVERT',
+                'optimization_event' => 'FORM',
+                'billing_event' => 'OCPM',
+                'placement_type' => 'PLACEMENT_TYPE_AUTOMATIC',
+                'location_ids' => $data['location_ids'] ?? ['6252001'],
+                'age_groups' => ['AGE_18_24', 'AGE_25_34', 'AGE_35_44', 'AGE_45_54', 'AGE_55_100'],
+                'gender' => 'GENDER_UNLIMITED',
+                'budget_mode' => 'BUDGET_MODE_DAY',
+                'budget' => floatval($data['budget'] ?? 50),
+                'schedule_type' => 'SCHEDULE_FROM_NOW',
+                'schedule_start_time' => $data['schedule_start_time'],
+                'bid_type' => 'BID_TYPE_CUSTOM',
+                'conversion_bid_price' => floatval($data['conversion_bid_price'] ?? 10),
+                'pacing' => 'PACING_MODE_SMOOTH',
+                'click_attribution_window' => 'SEVEN_DAYS',
+                'view_attribution_window' => 'ONE_DAY',
+                'attribution_event_count' => 'EVERY'
+            ];
+            
+            logToFile("Smart+ Ad Group Params: " . json_encode($params, JSON_PRETTY_PRINT));
+            
+            $adGroup = new AdGroup($config);
+            $result = $adGroup->create($params);
+            
+            if ($result['code'] == 0) {
+                echo json_encode([
+                    'success' => true,
+                    'data' => $result['data'],
+                    'message' => 'Smart+ Ad Group created successfully'
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => $result['message'] ?? 'Failed to create Smart+ ad group',
+                    'error' => $result
+                ]);
+            }
+            break;
+            
+        case 'create_smart_ad':
+            $data = $requestData;
+            $mediaList = $data['media_list'] ?? [];
+            $textList = $data['ad_texts'] ?? [];
+            
+            // For now, create a single ad with first media and text
+            $params = [
+                'advertiser_id' => $advertiser_id,
+                'adgroup_id' => $data['adgroup_id'],
+                'ad_name' => $data['ad_name'],
+                'ad_text' => $textList[0] ?? 'Ad text',
+                'ad_format' => 'SINGLE_VIDEO',
+                'video_id' => $mediaList[0] ?? '',
+                'identity_id' => $data['identity_id'],
+                'identity_type' => 'CUSTOMIZED',
+                'call_to_action' => $data['call_to_action'] ?? 'LEARN_MORE',
+                'landing_page_url' => $data['landing_page_url']
+            ];
+            
+            logToFile("Smart+ Ad Params: " . json_encode($params, JSON_PRETTY_PRINT));
+            
+            $ad = new Ad($config);
+            $result = $ad->create($params);
+            
+            if ($result['code'] == 0) {
+                echo json_encode([
+                    'success' => true,
+                    'data' => $result['data'],
+                    'message' => 'Smart+ Ad created successfully'
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => $result['message'] ?? 'Failed to create Smart+ ad',
+                    'error' => $result
+                ]);
+            }
+            break;
         case 'get_advertisers':
             // Get list of advertiser accounts for the authenticated user
             $appId = $_ENV['TIKTOK_APP_ID'] ?? '';

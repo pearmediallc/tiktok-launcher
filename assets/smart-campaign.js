@@ -121,7 +121,6 @@ function prevStep() {
 // Create Smart+ Campaign
 async function createSmartCampaign() {
     const campaignName = document.getElementById('campaign-name').value.trim();
-    const campaignBudget = parseFloat(document.getElementById('campaign-budget').value) || 0;
     const startDate = document.getElementById('campaign-start-date').value;
     const endDate = document.getElementById('campaign-end-date').value;
     
@@ -135,20 +134,12 @@ async function createSmartCampaign() {
         showToast('Please enter campaign name', 'error');
         return;
     }
-    
-    if (!campaignBudget || campaignBudget < 50) {
-        showToast('Smart+ Campaign budget must be at least $50', 'error');
-        return;
-    }
 
     showLoading();
 
     try {
         const params = {
             campaign_name: campaignName,
-            campaign_type: 'SMART_PLUS', // Special type for Smart+ campaigns
-            budget: campaignBudget,
-            budget_mode: 'BUDGET_MODE_DAY',
             smart_features: {
                 auto_targeting: autoTargeting,
                 auto_placement: autoPlacement,
@@ -654,7 +645,6 @@ function reviewSmartAds() {
 function generateSmartReviewSummary() {
     // Campaign summary
     const campaignSummary = document.getElementById('campaign-summary');
-    const campaignBudget = document.getElementById('campaign-budget').value;
     const autoTargeting = document.getElementById('auto-targeting').checked;
     const autoPlacement = document.getElementById('auto-placement').checked;
     const creativeOptimization = document.getElementById('creative-optimization').checked;
@@ -663,7 +653,7 @@ function generateSmartReviewSummary() {
         <p><strong>Campaign Name:</strong> ${document.getElementById('campaign-name').value}</p>
         <p><strong>Campaign Type:</strong> <span class="badge-smart">Smart+</span></p>
         <p><strong>Objective:</strong> Lead Generation</p>
-        <p><strong>Daily Budget:</strong> $${campaignBudget}</p>
+        <p><strong>Budget:</strong> Set at Ad Group Level</p>
         <p><strong>AI Features:</strong></p>
         <ul style="margin-left: 20px;">
             ${autoTargeting ? '<li>✓ Automated Audience Targeting</li>' : ''}
@@ -786,11 +776,12 @@ async function publishSmartCampaign() {
 
 // Utility functions
 function formatToTikTokDateTime(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    // Use UTC time to match TikTok API requirements
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
     const seconds = '00';
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
