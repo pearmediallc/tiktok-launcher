@@ -83,63 +83,113 @@ try {
             logToFile("Processing Smart+ Campaign Creation...");
             $data = $requestData;
             
-            // Smart+ campaigns don't need budget at campaign level
+            // Smart+ campaigns use a different API endpoint and parameters
             $params = [
                 'advertiser_id' => $advertiser_id,
                 'campaign_name' => $data['campaign_name'],
                 'objective_type' => 'LEAD_GENERATION',
+                'promotion_type' => 'LEAD_GENERATION',
+                'promotion_target_type' => 'EXTERNAL_WEBSITE', // or INSTANT_PAGE
+                'optimization_goal' => 'LEAD_GENERATION',
+                'billing_event' => 'OCPM',
                 'operation_status' => 'ENABLE',
-                'is_smart_performance_campaign' => true // Required for Smart+ campaigns
+                
+                // Smart+ Campaign specific settings
+                'placement_type' => 'PLACEMENT_TYPE_NORMAL',
+                'placements' => ['PLACEMENT_TIKTOK'],
+                'budget_mode' => 'BUDGET_MODE_DYNAMIC_DAILY_BUDGET', // Required for Smart+ Lead Gen
+                'budget' => 50, // Minimum budget for Smart+
+                'schedule_type' => 'SCHEDULE_FROM_NOW',
+                'schedule_start_time' => date('Y-m-d H:i:s'),
+                
+                // Targeting (basic for Smart+)
+                'location_ids' => ['6252001'], // United States
+                'spc_audience_age' => '18+',
+                'exclude_age_under_eighteen' => true,
+                'gender' => 'GENDER_UNLIMITED',
+                
+                // Attribution windows
+                'click_attribution_window' => 'SEVEN_DAYS',
+                'view_attribution_window' => 'ONE_DAY',
+                'attribution_event_count' => 'EVERY'
             ];
             
             // Add schedule times if provided
             if (!empty($data['schedule_start_time'])) {
                 $params['schedule_start_time'] = $data['schedule_start_time'];
+                $params['schedule_type'] = 'SCHEDULE_START_END';
             }
             if (!empty($data['schedule_end_time'])) {
                 $params['schedule_end_time'] = $data['schedule_end_time'];
             }
             
-            logToFile("=== TIKTOK API CALL DETAILS ===");
-            logToFile("SDK Config: " . json_encode($config, JSON_PRETTY_PRINT));
-            logToFile("TikTok API Endpoint: Campaign Create");
-            logToFile("TikTok API Params: " . json_encode($params, JSON_PRETTY_PRINT));
-            logToFile("================================");
+            logToFile("=== SMART+ CAMPAIGN API CALL ===");
+            logToFile("TikTok API Endpoint: /campaign/spc/create/");
+            logToFile("Smart+ Campaign Params: " . json_encode($params, JSON_PRETTY_PRINT));
+            logToFile("===============================");
             
-            $campaign = new Campaign($config);
-            $result = $campaign->create($params);
+            // Use direct API call for Smart+ Campaign endpoint
+            $accessToken = $_ENV['TIKTOK_ACCESS_TOKEN'] ?? '';
+            $url = "https://business-api.tiktok.com/open_api/v1.3/campaign/spc/create/";
             
-            logToFile("=== TIKTOK API RESPONSE ===");
-            logToFile("TikTok Response: " . json_encode($result, JSON_PRETTY_PRINT));
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => json_encode($params),
+                CURLOPT_HTTPHEADER => [
+                    "Access-Token: " . $accessToken,
+                    "Content-Type: application/json"
+                ],
+            ]);
+            
+            $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            logToFile("=== SMART+ API RESPONSE ===");
+            logToFile("HTTP Code: " . $httpCode);
+            logToFile("Raw Response: " . $result);
             logToFile("===========================");
             
-            $response = null;
-            if ($result['code'] == 0) {
-                $response = [
-                    'success' => true,
-                    'data' => $result['data'],
-                    'message' => 'Smart+ Campaign created successfully'
-                ];
-                logToFile("=== SUCCESS RESPONSE ===");
-                logToFile("Sending success response: " . json_encode($response, JSON_PRETTY_PRINT));
-                echo json_encode($response);
+            if ($httpCode === 200) {
+                $response = json_decode($result, true);
+                if ($response && isset($response['code']) && $response['code'] == 0) {
+                    logToFile("Smart+ Campaign created successfully");
+                    $smartResponse = [
+                        'success' => true,
+                        'data' => $response['data'],
+                        'message' => 'Smart+ Campaign created successfully'
+                    ];
+                } else {
+                    logToFile("Smart+ Campaign creation failed: " . json_encode($response));
+                    $smartResponse = [
+                        'success' => false,
+                        'message' => $response['message'] ?? 'Failed to create Smart+ campaign',
+                        'error' => $response
+                    ];
+                }
             } else {
-                $response = [
+                logToFile("HTTP error: " . $httpCode);
+                $smartResponse = [
                     'success' => false,
-                    'message' => $result['message'] ?? 'Failed to create Smart+ campaign',
+                    'message' => 'API request failed with HTTP ' . $httpCode,
                     'error' => $result
                 ];
-                logToFile("=== ERROR RESPONSE ===");
-                logToFile("Sending error response: " . json_encode($response, JSON_PRETTY_PRINT));
-                echo json_encode($response);
             }
-            logToFile("Response sent, exiting...");
+            
+            logToFile("=== FINAL RESPONSE ===");
+            logToFile("Sending response: " . json_encode($smartResponse, JSON_PRETTY_PRINT));
+            echo json_encode($smartResponse);
+            logToFile("Smart+ Campaign response sent, exiting...");
             exit;
             
         case 'create_smart_adgroup':
+            logToFile("Processing Smart+ Ad Group Creation...");
             $data = $requestData;
             
-            // Smart+ Ad Group parameters with budget
+            // Smart+ Ad Groups use regular ad group endpoint but with Smart+ campaign
             $params = [
                 'advertiser_id' => $advertiser_id,
                 'campaign_id' => $data['campaign_id'],
@@ -147,43 +197,67 @@ try {
                 'promotion_type' => 'LEAD_GENERATION',
                 'promotion_target_type' => 'EXTERNAL_WEBSITE',
                 'pixel_id' => $data['pixel_id'],
-                'optimization_goal' => 'CONVERT',
+                'optimization_goal' => 'LEAD_GENERATION',
                 'optimization_event' => 'FORM',
                 'billing_event' => 'OCPM',
-                'placement_type' => 'PLACEMENT_TYPE_AUTOMATIC',
-                'location_ids' => $data['location_ids'] ?? ['6252001'],
+                
+                // Smart+ campaigns automatically set placement
+                'placement_type' => 'PLACEMENT_TYPE_NORMAL',
+                'placements' => ['PLACEMENT_TIKTOK'],
+                
+                // Targeting 
+                'location_ids' => ['6252001'], // United States
                 'age_groups' => ['AGE_18_24', 'AGE_25_34', 'AGE_35_44', 'AGE_45_54', 'AGE_55_100'],
                 'gender' => 'GENDER_UNLIMITED',
+                
+                // Budget and scheduling
                 'budget_mode' => 'BUDGET_MODE_DAY',
                 'budget' => floatval($data['budget'] ?? 50),
                 'schedule_type' => 'SCHEDULE_FROM_NOW',
                 'schedule_start_time' => $data['schedule_start_time'],
+                
+                // Bidding for Smart+
                 'bid_type' => 'BID_TYPE_CUSTOM',
                 'conversion_bid_price' => floatval($data['conversion_bid_price'] ?? 10),
                 'pacing' => 'PACING_MODE_SMOOTH',
+                
+                // Attribution windows
                 'click_attribution_window' => 'SEVEN_DAYS',
                 'view_attribution_window' => 'ONE_DAY',
                 'attribution_event_count' => 'EVERY'
             ];
             
+            logToFile("=== SMART+ AD GROUP API CALL ===");
+            logToFile("TikTok API Endpoint: /adgroup/create/");
             logToFile("Smart+ Ad Group Params: " . json_encode($params, JSON_PRETTY_PRINT));
+            logToFile("===============================");
             
             $adGroup = new AdGroup($config);
             $result = $adGroup->create($params);
             
+            logToFile("=== SMART+ AD GROUP RESPONSE ===");
+            logToFile("TikTok Response: " . json_encode($result, JSON_PRETTY_PRINT));
+            logToFile("===============================");
+            
+            $adGroupResponse = null;
             if ($result['code'] == 0) {
-                echo json_encode([
+                $adGroupResponse = [
                     'success' => true,
                     'data' => $result['data'],
                     'message' => 'Smart+ Ad Group created successfully'
-                ]);
+                ];
             } else {
-                echo json_encode([
+                $adGroupResponse = [
                     'success' => false,
                     'message' => $result['message'] ?? 'Failed to create Smart+ ad group',
                     'error' => $result
-                ]);
+                ];
             }
+            
+            logToFile("=== AD GROUP FINAL RESPONSE ===");
+            logToFile("Sending response: " . json_encode($adGroupResponse, JSON_PRETTY_PRINT));
+            echo json_encode($adGroupResponse);
+            logToFile("Smart+ Ad Group response sent, exiting...");
             exit;
             
         case 'create_smart_ad':
