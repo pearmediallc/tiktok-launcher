@@ -14,13 +14,36 @@ const smartState = {
 
 // Initialize on page load
 window.addEventListener('DOMContentLoaded', async () => {
-    await loadAdvertiserInfo();
-    await loadLeadGenForms();
-    initializeSmartAd();
+    console.log('=== Smart+ Campaign Initialization ===');
     
-    // Set minimum date to today for campaign dates
-    const today = new Date().toISOString().slice(0, 16);
-    document.getElementById('campaign-start-date').min = today;
+    try {
+        await loadAdvertiserInfo();
+        await loadLeadGenForms();
+        initializeSmartAd();
+        
+        // Set minimum date to today for campaign dates
+        const today = new Date().toISOString().slice(0, 16);
+        console.log('Setting minimum date to:', today);
+        
+        const startDateInput = document.getElementById('campaign-start-date');
+        const endDateInput = document.getElementById('campaign-end-date');
+        
+        if (startDateInput) {
+            startDateInput.min = today;
+            console.log('Start date input found and min set');
+        } else {
+            console.error('Start date input not found!');
+        }
+        
+        if (endDateInput) {
+            endDateInput.min = today;
+            console.log('End date input found and min set');
+        } else {
+            console.error('End date input not found!');
+        }
+    } catch (error) {
+        console.error('Initialization error:', error);
+    }
 });
 
 // Load advertiser info
@@ -124,10 +147,17 @@ async function createSmartCampaign() {
     const startDate = document.getElementById('campaign-start-date').value;
     const endDate = document.getElementById('campaign-end-date').value;
     
+    console.log('=== SMART+ CAMPAIGN CREATION ===');
+    console.log('Campaign Name:', campaignName);
+    console.log('Start Date Input:', startDate);
+    console.log('End Date Input:', endDate);
+    
     // Get Smart+ features
     const autoTargeting = document.getElementById('auto-targeting').checked;
     const autoPlacement = document.getElementById('auto-placement').checked;
     const creativeOptimization = document.getElementById('creative-optimization').checked;
+    
+    console.log('Smart Features:', { autoTargeting, autoPlacement, creativeOptimization });
 
     // Validate
     if (!campaignName) {
@@ -151,14 +181,20 @@ async function createSmartCampaign() {
         if (startDate) {
             const startDateTime = new Date(startDate);
             params.schedule_start_time = formatToTikTokDateTime(startDateTime);
+            console.log('Formatted Start Time:', params.schedule_start_time);
         }
 
         if (endDate) {
             const endDateTime = new Date(endDate);
             params.schedule_end_time = formatToTikTokDateTime(endDateTime);
+            console.log('Formatted End Time:', params.schedule_end_time);
         }
+        
+        console.log('API Request Params:', JSON.stringify(params, null, 2));
 
         const response = await apiRequest('create_smart_campaign', params);
+        
+        console.log('API Response:', response);
 
         if (response.success && response.data && response.data.campaign_id) {
             smartState.campaignId = response.data.campaign_id;
@@ -166,9 +202,11 @@ async function createSmartCampaign() {
             showToast('Smart+ Campaign created successfully', 'success');
             nextStep();
         } else {
-            showToast(response.message || 'Failed to create Smart+ campaign', 'error');
+            console.error('Campaign creation failed:', response);
+            showToast(response.message || response.error || 'Failed to create Smart+ campaign', 'error');
         }
     } catch (error) {
+        console.error('Error creating campaign:', error);
         showToast('Error creating campaign: ' + error.message, 'error');
     } finally {
         hideLoading();
@@ -787,17 +825,36 @@ function formatToTikTokDateTime(date) {
 }
 
 async function apiRequest(action, data) {
-    // Use main API which will route to api-smart.php for Smart+ actions
-    const response = await fetch('api.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            action: action,
-            ...data
-        })
-    });
-    
-    return await response.json();
+    try {
+        // Use main API which will route to api-smart.php for Smart+ actions
+        console.log(`API Request: ${action}`, data);
+        
+        const response = await fetch('api.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: action,
+                ...data
+            })
+        });
+        
+        const responseText = await response.text();
+        console.log('API Response Text:', responseText);
+        
+        // Try to parse JSON
+        try {
+            const jsonResponse = JSON.parse(responseText);
+            console.log('API Response JSON:', jsonResponse);
+            return jsonResponse;
+        } catch (parseError) {
+            console.error('Failed to parse JSON response:', parseError);
+            console.error('Response was:', responseText);
+            throw new Error('Invalid JSON response from server: ' + responseText.substring(0, 200));
+        }
+    } catch (error) {
+        console.error('API Request Failed:', error);
+        throw error;
+    }
 }
 
 function showLoading() {

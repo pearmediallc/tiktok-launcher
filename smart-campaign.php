@@ -302,6 +302,71 @@ if (!isset($_SESSION['selected_advertiser_id'])) {
     <!-- Toast notification -->
     <div id="toast" class="toast"></div>
 
+    <!-- Debug Console -->
+    <div id="debug-console" style="position: fixed; bottom: 10px; right: 10px; width: 400px; max-height: 300px; background: #1a1a1a; color: #0f0; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; overflow-y: auto; display: none; z-index: 10000;">
+        <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
+            <strong style="color: #fff;">Debug Console</strong>
+            <button onclick="clearDebugConsole()" style="margin-left: auto; padding: 2px 8px; background: #333; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Clear</button>
+            <button onclick="toggleDebugConsole()" style="margin-left: 5px; padding: 2px 8px; background: #333; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Hide</button>
+        </div>
+        <div id="debug-output" style="white-space: pre-wrap; word-wrap: break-word;"></div>
+    </div>
+    
+    <!-- Debug Toggle Button -->
+    <button onclick="toggleDebugConsole()" style="position: fixed; bottom: 10px; right: 10px; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 20px; cursor: pointer; z-index: 9999;" id="debug-toggle-btn">
+        🐛 Debug
+    </button>
+
     <script src="assets/smart-campaign.js"></script>
+    <script>
+        // Debug console functions
+        function toggleDebugConsole() {
+            const console = document.getElementById('debug-console');
+            const toggleBtn = document.getElementById('debug-toggle-btn');
+            if (console.style.display === 'none') {
+                console.style.display = 'block';
+                toggleBtn.style.display = 'none';
+            } else {
+                console.style.display = 'none';
+                toggleBtn.style.display = 'block';
+            }
+        }
+        
+        function clearDebugConsole() {
+            document.getElementById('debug-output').innerHTML = '';
+        }
+        
+        // Override console.log to also display in debug console
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const debugOutput = document.getElementById('debug-output');
+            if (debugOutput) {
+                const timestamp = new Date().toLocaleTimeString();
+                debugOutput.innerHTML += `<span style="color: #888;">[${timestamp}]</span> <span style="color: #0f0;">LOG:</span> ${args.map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg
+                ).join(' ')}\n`;
+                debugOutput.scrollTop = debugOutput.scrollHeight;
+            }
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            const debugOutput = document.getElementById('debug-output');
+            if (debugOutput) {
+                const timestamp = new Date().toLocaleTimeString();
+                debugOutput.innerHTML += `<span style="color: #888;">[${timestamp}]</span> <span style="color: #f00;">ERROR:</span> ${args.map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg
+                ).join(' ')}\n`;
+                debugOutput.scrollTop = debugOutput.scrollHeight;
+            }
+        };
+        
+        // Log initial load
+        console.log('Smart+ Campaign Page Loaded');
+        console.log('Advertiser ID:', localStorage.getItem('advertiser_id'));
+    </script>
 </body>
 </html>
