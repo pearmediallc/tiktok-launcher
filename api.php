@@ -83,44 +83,38 @@ try {
             logToFile("Processing Smart+ Campaign Creation...");
             $data = $requestData;
             
-            // Smart+ campaigns use a different API endpoint and parameters
+            // Smart+ campaigns using official TikTok API structure
             $params = [
                 'advertiser_id' => $advertiser_id,
-                'campaign_name' => $data['campaign_name'],
-                'objective_type' => 'LEAD_GENERATION',
-                'promotion_type' => 'LEAD_GENERATION',
-                'promotion_target_type' => 'EXTERNAL_WEBSITE', // or INSTANT_PAGE
-                'optimization_goal' => 'LEAD_GENERATION',
-                'billing_event' => 'OCPM',
                 'operation_status' => 'ENABLE',
-                
-                // Smart+ Campaign specific settings
-                'placement_type' => 'PLACEMENT_TYPE_NORMAL',
-                'placements' => ['PLACEMENT_TIKTOK'],
+                'objective_type' => 'LEAD_GENERATION',
+                'campaign_type' => 'REGULAR_CAMPAIGN',
+                'campaign_name' => $data['campaign_name'],
+                'promotion_type' => 'LEAD_GENERATION',
+                'promotion_target_type' => 'EXTERNAL_WEBSITE', // Required for Lead Gen
+                'placement_type' => 'PLACEMENT_TYPE_NORMAL', // Required for Lead Gen
+                'location_ids' => ['6252001'], // United States
                 'budget_mode' => 'BUDGET_MODE_DYNAMIC_DAILY_BUDGET', // Required for Smart+ Lead Gen
                 'budget' => 50, // Minimum budget for Smart+
-                'schedule_type' => 'SCHEDULE_FROM_NOW',
+                'schedule_type' => 'SCHEDULE_START_END',
                 'schedule_start_time' => date('Y-m-d H:i:s'),
-                
-                // Always provide end_time - set to 1 year from now as default
-                'end_time' => date('Y-m-d H:i:s', strtotime('+1 year')),
-                
-                // Targeting (basic for Smart+)
-                'location_ids' => ['6252001'], // United States
+                'schedule_end_time' => date('Y-m-d H:i:s', strtotime('+1 year')),
+                'optimization_goal' => 'LEAD_GENERATION',
+                'bid_type' => 'BID_TYPE_NO_BID',
+                'billing_event' => 'OCPM',
+                // Note: identity_type and identity_id are not required for Smart+ Lead Gen campaigns
+                // They are only required when creating ads, not campaigns
                 'spc_audience_age' => '18+',
                 'exclude_age_under_eighteen' => true,
                 'gender' => 'GENDER_UNLIMITED',
-                
-                // Attribution windows
                 'click_attribution_window' => 'SEVEN_DAYS',
                 'view_attribution_window' => 'ONE_DAY',
                 'attribution_event_count' => 'EVERY'
             ];
             
-            // Add schedule times if provided
+            // Override schedule times if provided from frontend
             if (!empty($data['schedule_start_time'])) {
                 $params['schedule_start_time'] = $data['schedule_start_time'];
-                $params['schedule_type'] = 'SCHEDULE_START_END';
                 
                 // If end time is provided, use it; otherwise set a default end time (1 year from start)
                 if (!empty($data['schedule_end_time'])) {
@@ -132,14 +126,10 @@ try {
                     $endTime->add(new DateInterval('P1Y')); // Add 1 year
                     $params['schedule_end_time'] = $endTime->format('Y-m-d H:i:s');
                 }
-                
-                // Also add end_time field if API expects it (some inconsistency in TikTok API)
-                $params['end_time'] = $params['schedule_end_time'];
-            } else {
-                // No start time provided, use immediate start
-                $params['schedule_type'] = 'SCHEDULE_FROM_NOW';
-                $params['schedule_start_time'] = date('Y-m-d H:i:s');
             }
+            
+            // Note: Smart+ Lead Generation campaigns don't require identity_id at campaign level
+            // Identity is only required when creating ads within the campaign
             
             logToFile("=== SMART+ CAMPAIGN API CALL ===");
             logToFile("TikTok API Endpoint: /campaign/spc/create/");
