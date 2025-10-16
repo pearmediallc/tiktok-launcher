@@ -1861,6 +1861,79 @@ try {
             echo json_encode(['success' => true]);
             break;
 
+        case 'get_selected_advertiser':
+            // Return the currently selected advertiser from session
+            $selectedAdvertiserId = $_SESSION['selected_advertiser_id'] ?? '';
+            
+            logToFile("Get Selected Advertiser - Session ID: {$selectedAdvertiserId}");
+            
+            if (empty($selectedAdvertiserId)) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'No advertiser selected in session'
+                ]);
+                exit;
+            }
+            
+            // Get the advertiser details from TikTok API
+            $accessToken = $_ENV['TIKTOK_ACCESS_TOKEN'] ?? '';
+            $url = "https://business-api.tiktok.com/open_api/v1.3/oauth2/advertiser/get/?" . 
+                   "app_id=" . ($_ENV['TIKTOK_APP_ID'] ?? '') . "&" .
+                   "secret=" . ($_ENV['TIKTOK_APP_SECRET'] ?? '');
+            
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER => [
+                    "Access-Token: " . $accessToken,
+                    "Content-Type: application/json"
+                ],
+            ]);
+            
+            $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($httpCode === 200) {
+                $response = json_decode($result, true);
+                if ($response && isset($response['code']) && $response['code'] == 0) {
+                    // Find the selected advertiser in the list
+                    $selectedAdvertiser = null;
+                    foreach ($response['data']['list'] as $advertiser) {
+                        if ($advertiser['advertiser_id'] == $selectedAdvertiserId) {
+                            $selectedAdvertiser = $advertiser;
+                            break;
+                        }
+                    }
+                    
+                    if ($selectedAdvertiser) {
+                        logToFile("Selected advertiser found: " . json_encode($selectedAdvertiser));
+                        echo json_encode([
+                            'success' => true,
+                            'advertiser' => $selectedAdvertiser
+                        ]);
+                    } else {
+                        logToFile("Selected advertiser ID not found in available advertisers");
+                        echo json_encode([
+                            'success' => false,
+                            'message' => 'Selected advertiser not found'
+                        ]);
+                    }
+                } else {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => $response['message'] ?? 'Failed to get advertisers'
+                    ]);
+                }
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'API request failed'
+                ]);
+            }
+            exit;
+
         case 'get_debug_logs':
             // Return recent log entries for debugging
             $logFile = __DIR__ . '/api_debug.log';

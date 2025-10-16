@@ -60,25 +60,38 @@ function formatDateTimeLocal(date) {
 // Load advertiser info
 async function loadAdvertiserInfo() {
     try {
+        console.log('Loading advertiser info for Smart+ Campaign...');
+        
+        // Get the selected advertiser info from the session via API
         const response = await fetch('api.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'get_advertisers' })
+            body: JSON.stringify({ action: 'get_selected_advertiser' })
         });
         
         const data = await response.json();
+        console.log('Selected advertiser response:', data);
         
-        if (data.success && data.data && data.data.length > 0) {
-            const advertiser = data.data[0];
-            document.getElementById('advertiser-name').textContent = advertiser.name || advertiser.advertiser_name || 'Advertiser';
+        if (data.success && data.advertiser) {
+            const advertiser = data.advertiser;
+            console.log('Using selected advertiser:', advertiser);
+            
+            document.getElementById('advertiser-name').textContent = advertiser.advertiser_name || 'Selected Advertiser';
             smartState.selectedAdvertiserId = advertiser.advertiser_id;
             
             // Store for later use
-            localStorage.setItem('advertiser_name', advertiser.name || advertiser.advertiser_name);
+            localStorage.setItem('advertiser_name', advertiser.advertiser_name || 'Selected Advertiser');
             localStorage.setItem('advertiser_id', advertiser.advertiser_id);
+            
+            console.log('Smart+ Campaign will use advertiser:', advertiser.advertiser_id, '(' + advertiser.advertiser_name + ')');
+        } else {
+            console.error('No selected advertiser found, redirecting to selection page');
+            window.location.href = 'select-advertiser.php';
         }
     } catch (error) {
         console.error('Error loading advertiser info:', error);
+        // Fallback to advertiser selection
+        window.location.href = 'select-advertiser.php';
     }
 }
 
