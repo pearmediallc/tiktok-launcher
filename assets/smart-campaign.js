@@ -21,30 +21,41 @@ window.addEventListener('DOMContentLoaded', async () => {
         await loadLeadGenForms();
         initializeSmartAd();
         
-        // Set minimum date to today for campaign dates
-        const today = new Date().toISOString().slice(0, 16);
-        console.log('Setting minimum date to:', today);
+        // Set default start date to tomorrow (exactly like manual campaign)
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
         
-        const startDateInput = document.getElementById('campaign-start-date');
-        const endDateInput = document.getElementById('campaign-end-date');
+        console.log('Setting default date to tomorrow:', tomorrow);
         
-        if (startDateInput) {
-            startDateInput.min = today;
-            console.log('Start date input found and min set');
+        // Campaign start date
+        if (document.getElementById('campaign-start-date')) {
+            document.getElementById('campaign-start-date').value = formatDateTimeLocal(tomorrow);
+            console.log('Campaign start date set');
         } else {
-            console.error('Start date input not found!');
+            console.error('Campaign start date input not found!');
         }
         
-        if (endDateInput) {
-            endDateInput.min = today;
-            console.log('End date input found and min set');
+        // Campaign end date (optional)
+        if (document.getElementById('campaign-end-date')) {
+            console.log('Campaign end date input found');
         } else {
-            console.error('End date input not found!');
+            console.error('Campaign end date input not found!');
         }
     } catch (error) {
         console.error('Initialization error:', error);
     }
 });
+
+// Format date for datetime-local input (copied from manual campaign)
+function formatDateTimeLocal(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
 
 // Load advertiser info
 async function loadAdvertiserInfo() {

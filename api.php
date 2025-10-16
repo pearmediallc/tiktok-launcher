@@ -82,7 +82,8 @@ try {
                 'advertiser_id' => $advertiser_id,
                 'campaign_name' => $data['campaign_name'],
                 'objective_type' => 'LEAD_GENERATION',
-                'operation_status' => 'ENABLE'
+                'operation_status' => 'ENABLE',
+                'is_smart_performance_campaign' => true // Required for Smart+ campaigns
             ];
             
             // Add schedule times if provided
@@ -111,7 +112,7 @@ try {
                     'error' => $result
                 ]);
             }
-            break;
+            exit;
             
         case 'create_smart_adgroup':
             $data = $requestData;
@@ -161,7 +162,7 @@ try {
                     'error' => $result
                 ]);
             }
-            break;
+            exit;
             
         case 'create_smart_ad':
             $data = $requestData;
@@ -200,7 +201,7 @@ try {
                     'error' => $result
                 ]);
             }
-            break;
+            exit;
         case 'get_advertisers':
             // Get list of advertiser accounts for the authenticated user
             $appId = $_ENV['TIKTOK_APP_ID'] ?? '';
