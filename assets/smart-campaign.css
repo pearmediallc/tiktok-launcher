@@ -1,0 +1,384 @@
+/* Smart+ Campaign Specific Styles */
+
+.badge-smart {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+}
+
+.smart-badge-info {
+    background: linear-gradient(135deg, #f5f3ff, #fff);
+    border: 2px solid #667eea;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.smart-badge-info p {
+    margin-top: 10px;
+    color: #555;
+}
+
+.smart-features {
+    background: #f8f9ff;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.feature-toggle {
+    padding: 15px;
+    margin-bottom: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.feature-toggle:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.feature-toggle label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.feature-toggle input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    cursor: pointer;
+}
+
+.feature-toggle span {
+    font-weight: 600;
+    color: #333;
+}
+
+.feature-toggle small {
+    display: block;
+    margin-top: 8px;
+    margin-left: 32px;
+    color: #666;
+}
+
+.smart-info {
+    background: linear-gradient(135deg, #e8f4f8, #f0f8ff);
+    border-radius: 12px;
+    padding: 20px;
+    border-left: 4px solid #667eea;
+}
+
+.smart-info p {
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.smart-info ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.smart-info ul li {
+    padding: 8px 0;
+    padding-left: 25px;
+    position: relative;
+    color: #555;
+}
+
+.smart-info ul li:before {
+    content: "✨";
+    position: absolute;
+    left: 0;
+}
+
+.smart-ads-info {
+    background: #f5f3ff;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #555;
+}
+
+/* Smart Ad Card */
+.smart-ad-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.smart-ad-card.active {
+    border-color: #667eea;
+    background: #f8f9ff;
+}
+
+.smart-ad-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.smart-ad-header h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.remove-ad-btn {
+    background: #ff4444;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.remove-ad-btn:hover {
+    background: #cc0000;
+}
+
+/* Creative Assets Grid */
+.creative-assets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9ff;
+    border-radius: 8px;
+    min-height: 180px;
+}
+
+.creative-asset-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+    border: 2px solid #e0e0e0;
+    aspect-ratio: 1;
+}
+
+.creative-asset-item img,
+.creative-asset-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.creative-asset-item .asset-type {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.creative-asset-item .remove-asset {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(255, 68, 68, 0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.add-creative-btn {
+    border: 2px dashed #667eea;
+    background: transparent;
+    color: #667eea;
+    padding: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.add-creative-btn:hover {
+    background: #f8f9ff;
+    border-style: solid;
+}
+
+/* Multiple Text Inputs for Creatives */
+.creative-texts-container {
+    margin-top: 20px;
+}
+
+.creative-text-item {
+    margin-bottom: 15px;
+    padding: 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+    position: relative;
+}
+
+.creative-text-item label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.creative-text-item input,
+.creative-text-item textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+.creative-text-item .remove-text {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* Smart Optimization Note */
+.smart-optimization-note {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 25px;
+    border-radius: 12px;
+    margin: 30px 0;
+}
+
+.smart-optimization-note h4 {
+    margin-top: 0;
+    font-size: 20px;
+}
+
+.smart-optimization-note ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.smart-optimization-note ul li {
+    padding: 8px 0;
+    padding-left: 25px;
+    position: relative;
+}
+
+.smart-optimization-note ul li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+/* Media Selection for Smart+ */
+.smart-media-selection {
+    background: #f8f9ff;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.smart-media-selection h4 {
+    margin-top: 0;
+    color: #333;
+}
+
+.selected-media-count {
+    background: #667eea;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    display: inline-block;
+    margin-left: 10px;
+}
+
+/* Identity selection for each creative */
+.identity-per-creative {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.identity-per-creative .form-group {
+    margin: 0;
+}
+
+/* CTA Grid for Smart+ */
+.cta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.cta-option {
+    padding: 8px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cta-option:hover {
+    border-color: #667eea;
+    background: #f8f9ff;
+}
+
+.cta-option.selected {
+    border-color: #667eea;
+    background: #667eea;
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .creative-assets-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+    
+    .identity-per-creative {
+        grid-template-columns: 1fr;
+    }
+    
+    .cta-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+}

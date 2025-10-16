@@ -1,0 +1,851 @@
+// Smart+ Campaign JavaScript
+
+// State management for Smart+ Campaign
+const smartState = {
+    currentStep: 1,
+    campaignId: null,
+    adGroupId: null,
+    ads: [],
+    selectedAdvertiserId: null,
+    mediaLibrary: [],
+    currentAdIndex: null,
+    currentMediaSelection: []
+};
+
+// Initialize on page load
+window.addEventListener('DOMContentLoaded', async () => {
+    await loadAdvertiserInfo();
+    await loadLeadGenForms();
+    initializeSmartAd();
+    
+    // Set minimum date to today for campaign dates
+    const today = new Date().toISOString().slice(0, 16);
+    document.getElementById('campaign-start-date').min = today;
+});
+
+// Load advertiser info
+async function loadAdvertiserInfo() {
+    try {
+        const response = await fetch('api.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_advertisers' })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.length > 0) {
+            const advertiser = data.data[0];
+            document.getElementById('advertiser-name').textContent = advertiser.name || advertiser.advertiser_name || 'Advertiser';
+            smartState.selectedAdvertiserId = advertiser.advertiser_id;
+            
+            // Store for later use
+            localStorage.setItem('advertiser_name', advertiser.name || advertiser.advertiser_name);
+            localStorage.setItem('advertiser_id', advertiser.advertiser_id);
+        }
+    } catch (error) {
+        console.error('Error loading advertiser info:', error);
+    }
+}
+
+// Load lead generation forms
+async function loadLeadGenForms() {
+    try {
+        const response = await fetch('api.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_lead_forms' })
+        });
+        
+        const data = await response.json();
+        
+        const select = document.getElementById('lead-gen-form-id');
+        select.innerHTML = '<option value="">Select a lead form</option>';
+        
+        if (data.success && data.data && data.data.list) {
+            data.data.list.forEach(form => {
+                const option = document.createElement('option');
+                option.value = form.page_id;
+                option.textContent = form.page_name || 'Unnamed Form';
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading lead forms:', error);
+    }
+}
+
+// Toggle pixel method
+function togglePixelMethod() {
+    const manualInput = document.getElementById('pixel-manual-input');
+    const radioManual = document.querySelector('input[name="pixel-method"][value="manual"]');
+    
+    if (radioManual && radioManual.checked) {
+        manualInput.style.display = 'block';
+    } else {
+        manualInput.style.display = 'none';
+    }
+}
+
+// Step navigation
+function nextStep() {
+    if (smartState.currentStep < 4) {
+        document.querySelector(`.step[data-step="${smartState.currentStep}"]`).classList.remove('active');
+        document.querySelector(`.step[data-step="${smartState.currentStep}"]`).classList.add('completed');
+        document.getElementById(`step-${smartState.currentStep}`).classList.remove('active');
+
+        smartState.currentStep++;
+
+        document.querySelector(`.step[data-step="${smartState.currentStep}"]`).classList.add('active');
+        document.getElementById(`step-${smartState.currentStep}`).classList.add('active');
+
+        window.scrollTo(0, 0);
+    }
+}
+
+function prevStep() {
+    if (smartState.currentStep > 1) {
+        document.querySelector(`.step[data-step="${smartState.currentStep}"]`).classList.remove('active');
+        document.getElementById(`step-${smartState.currentStep}`).classList.remove('active');
+
+        smartState.currentStep--;
+
+        document.querySelector(`.step[data-step="${smartState.currentStep}"]`).classList.remove('completed');
+        document.querySelector(`.step[data-step="${smartState.currentStep}"]`).classList.add('active');
+        document.getElementById(`step-${smartState.currentStep}`).classList.add('active');
+
+        window.scrollTo(0, 0);
+    }
+}
+
+// Create Smart+ Campaign
+async function createSmartCampaign() {
+    const campaignName = document.getElementById('campaign-name').value.trim();
+    const campaignBudget = parseFloat(document.getElementById('campaign-budget').value) || 0;
+    const startDate = document.getElementById('campaign-start-date').value;
+    const endDate = document.getElementById('campaign-end-date').value;
+    
+    // Get Smart+ features
+    const autoTargeting = document.getElementById('auto-targeting').checked;
+    const autoPlacement = document.getElementById('auto-placement').checked;
+    const creativeOptimization = document.getElementById('creative-optimization').checked;
+
+    // Validate
+    if (!campaignName) {
+        showToast('Please enter campaign name', 'error');
+        return;
+    }
+    
+    if (!campaignBudget || campaignBudget < 50) {
+        showToast('Smart+ Campaign budget must be at least $50', 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const params = {
+            campaign_name: campaignName,
+            campaign_type: 'SMART_PLUS', // Special type for Smart+ campaigns
+            budget: campaignBudget,
+            budget_mode: 'BUDGET_MODE_DAY',
+            smart_features: {
+                auto_targeting: autoTargeting,
+                auto_placement: autoPlacement,
+                creative_optimization: creativeOptimization
+            }
+        };
+
+        // Add schedule times if provided
+        if (startDate) {
+            const startDateTime = new Date(startDate);
+            params.schedule_start_time = formatToTikTokDateTime(startDateTime);
+        }
+
+        if (endDate) {
+            const endDateTime = new Date(endDate);
+            params.schedule_end_time = formatToTikTokDateTime(endDateTime);
+        }
+
+        const response = await apiRequest('create_smart_campaign', params);
+
+        if (response.success && response.data && response.data.campaign_id) {
+            smartState.campaignId = response.data.campaign_id;
+            document.getElementById('display-campaign-id').textContent = smartState.campaignId;
+            showToast('Smart+ Campaign created successfully', 'success');
+            nextStep();
+        } else {
+            showToast(response.message || 'Failed to create Smart+ campaign', 'error');
+        }
+    } catch (error) {
+        showToast('Error creating campaign: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Create Smart+ Ad Group
+async function createSmartAdGroup() {
+    const adGroupName = document.getElementById('adgroup-name').value.trim();
+    const pixelMethod = document.querySelector('input[name="pixel-method"]:checked')?.value || 'dropdown';
+    const pixelId = pixelMethod === 'manual'
+        ? document.getElementById('pixel-manual-input').value.trim()
+        : document.getElementById('lead-gen-form-id').value.trim();
+    const budget = parseFloat(document.getElementById('budget').value);
+    const bidPrice = parseFloat(document.getElementById('bid-price').value);
+
+    if (!adGroupName || !pixelId || !budget || !bidPrice) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    if (budget < 50) {
+        showToast('Smart+ Ad Group budget must be at least $50', 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const scheduleStartTime = formatToTikTokDateTime(new Date());
+
+        const params = {
+            campaign_id: smartState.campaignId,
+            adgroup_name: adGroupName,
+            promotion_type: 'LEAD_GENERATION',
+            promotion_target_type: 'EXTERNAL_WEBSITE',
+            pixel_id: pixelId,
+            optimization_goal: 'CONVERT',
+            optimization_event: 'FORM',
+            billing_event: 'OCPM',
+            
+            // Smart+ specific settings
+            smart_optimization: true,
+            auto_targeting: true,
+            placement_type: 'PLACEMENT_TYPE_AUTOMATIC', // Auto placement for Smart+
+            
+            // Demographics - Smart+ will optimize these
+            location_ids: ['6252001'], // United States
+            age_groups: ['AGE_18_24', 'AGE_25_34', 'AGE_35_44', 'AGE_45_54', 'AGE_55_100'],
+            gender: 'GENDER_UNLIMITED',
+            
+            // Budget
+            budget_mode: 'BUDGET_MODE_DAY',
+            budget: budget,
+            schedule_type: 'SCHEDULE_FROM_NOW',
+            schedule_start_time: scheduleStartTime,
+            
+            // Smart bidding
+            bid_type: 'BID_TYPE_CUSTOM',
+            conversion_bid_price: bidPrice,
+            pacing: 'PACING_MODE_SMOOTH'
+        };
+
+        const response = await apiRequest('create_smart_adgroup', params);
+
+        if (response.success && response.data && response.data.adgroup_id) {
+            smartState.adGroupId = response.data.adgroup_id;
+            showToast('Smart+ Ad Group created successfully', 'success');
+            nextStep();
+        } else {
+            showToast(response.message || 'Failed to create ad group', 'error');
+        }
+    } catch (error) {
+        showToast('Error creating ad group: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Initialize Smart+ Ad
+function initializeSmartAd() {
+    const container = document.getElementById('ads-container');
+    const adIndex = smartState.ads.length + 1;
+    
+    const adCard = document.createElement('div');
+    adCard.className = 'smart-ad-card';
+    adCard.id = `ad-card-${adIndex}`;
+    adCard.innerHTML = `
+        <div class="smart-ad-header">
+            <h3>
+                <span class="badge-smart">Smart+</span>
+                Creative Set ${adIndex}
+            </h3>
+            ${adIndex > 1 ? `<button class="remove-ad-btn" onclick="removeSmartAd(${adIndex})">Remove</button>` : ''}
+        </div>
+        
+        <div class="form-group">
+            <label>Ad Name</label>
+            <input type="text" id="ad-name-${adIndex}" placeholder="Enter ad name" required>
+        </div>
+        
+        <div class="form-section">
+            <h4>Creative Assets (Add Multiple for AI Optimization)</h4>
+            <div class="creative-assets-grid" id="creative-grid-${adIndex}">
+                <button class="add-creative-btn" onclick="openMediaModal(${adIndex}, true)">
+                    + Add Videos/Images<br>
+                    <small>Up to 10 assets</small>
+                </button>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4>Ad Texts (Multiple variations for testing)</h4>
+            <div class="creative-texts-container" id="texts-container-${adIndex}">
+                <div class="creative-text-item">
+                    <label>Primary Text 1</label>
+                    <textarea id="ad-text-${adIndex}-1" placeholder="Enter your ad text" rows="3" required></textarea>
+                </div>
+            </div>
+            <button class="btn-secondary" onclick="addTextVariation(${adIndex})">+ Add Text Variation</button>
+        </div>
+        
+        <div class="form-section">
+            <h4>Identity & CTA</h4>
+            <div class="identity-per-creative">
+                <div class="form-group">
+                    <label>Identity</label>
+                    <select id="identity-${adIndex}" required>
+                        <option value="">Loading identities...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Call to Action</label>
+                    <select id="cta-${adIndex}" required>
+                        <option value="LEARN_MORE">Learn More</option>
+                        <option value="SIGN_UP">Sign Up</option>
+                        <option value="GET_QUOTE">Get Quote</option>
+                        <option value="APPLY_NOW">Apply Now</option>
+                        <option value="CONTACT_US">Contact Us</option>
+                        <option value="DOWNLOAD">Download</option>
+                        <option value="SUBSCRIBE">Subscribe</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Destination URL</label>
+            <input type="url" id="destination-url-${adIndex}" placeholder="https://example.com" required>
+        </div>
+        
+        <input type="hidden" id="media-${adIndex}" value="">
+    `;
+    
+    container.appendChild(adCard);
+    
+    // Add to state
+    smartState.ads.push({
+        index: adIndex,
+        media: [],
+        texts: [1],
+        textCount: 1
+    });
+    
+    // Load identities
+    loadIdentitiesForAd(adIndex);
+}
+
+// Add Smart+ Ad
+function addSmartAd() {
+    initializeSmartAd();
+}
+
+// Remove Smart+ Ad
+function removeSmartAd(adIndex) {
+    const adCard = document.getElementById(`ad-card-${adIndex}`);
+    if (adCard) {
+        adCard.remove();
+    }
+    
+    // Remove from state
+    smartState.ads = smartState.ads.filter(ad => ad.index !== adIndex);
+}
+
+// Add text variation
+function addTextVariation(adIndex) {
+    const ad = smartState.ads.find(a => a.index === adIndex);
+    if (!ad) return;
+    
+    ad.textCount++;
+    const textNum = ad.textCount;
+    ad.texts.push(textNum);
+    
+    const container = document.getElementById(`texts-container-${adIndex}`);
+    const textItem = document.createElement('div');
+    textItem.className = 'creative-text-item';
+    textItem.id = `text-item-${adIndex}-${textNum}`;
+    textItem.innerHTML = `
+        <label>Text Variation ${textNum}</label>
+        <textarea id="ad-text-${adIndex}-${textNum}" placeholder="Enter your ad text variation" rows="3"></textarea>
+        <button class="remove-text" onclick="removeTextVariation(${adIndex}, ${textNum})">Remove</button>
+    `;
+    
+    container.appendChild(textItem);
+}
+
+// Remove text variation
+function removeTextVariation(adIndex, textNum) {
+    const textItem = document.getElementById(`text-item-${adIndex}-${textNum}`);
+    if (textItem) {
+        textItem.remove();
+    }
+    
+    const ad = smartState.ads.find(a => a.index === adIndex);
+    if (ad) {
+        ad.texts = ad.texts.filter(t => t !== textNum);
+    }
+}
+
+// Load identities for ad
+async function loadIdentitiesForAd(adIndex) {
+    try {
+        const response = await apiRequest('get_identities', {});
+        
+        if (response.success && response.data) {
+            const select = document.getElementById(`identity-${adIndex}`);
+            select.innerHTML = '<option value="">Select identity</option>';
+            
+            response.data.forEach(identity => {
+                const option = document.createElement('option');
+                option.value = identity.identity_id;
+                option.textContent = identity.display_name || identity.identity_name || 'Unnamed Identity';
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading identities:', error);
+    }
+}
+
+// Open media modal for Smart+ (allows multiple selection)
+function openMediaModal(adIndex, allowMultiple = true) {
+    smartState.currentAdIndex = adIndex;
+    smartState.currentMediaSelection = [];
+    
+    const modal = document.getElementById('media-modal');
+    modal.style.display = 'block';
+    
+    // Update selection counter
+    const counter = document.getElementById('selection-counter');
+    if (allowMultiple) {
+        counter.style.display = 'inline';
+        counter.textContent = '0 selected';
+    }
+    
+    // Load media library
+    loadMediaLibrary(allowMultiple);
+}
+
+// Load media library
+async function loadMediaLibrary(allowMultiple = true) {
+    try {
+        const response = await apiRequest('get_media_library', {});
+        
+        if (response.success && response.data) {
+            smartState.mediaLibrary = response.data;
+            displayMediaGrid(response.data, allowMultiple);
+        }
+    } catch (error) {
+        console.error('Error loading media library:', error);
+    }
+}
+
+// Display media grid
+function displayMediaGrid(media, allowMultiple) {
+    const grid = document.getElementById('media-grid');
+    grid.innerHTML = '';
+    
+    media.forEach(item => {
+        const mediaItem = document.createElement('div');
+        mediaItem.className = 'media-item';
+        mediaItem.onclick = () => selectMediaForSmartAd(item, allowMultiple);
+        
+        const isVideo = item.material_type === 'VIDEO';
+        
+        mediaItem.innerHTML = `
+            <div class="media-preview">
+                ${isVideo ? 
+                    `<video src="${item.url}" muted></video>` : 
+                    `<img src="${item.url}" alt="${item.file_name}">`
+                }
+                <div class="media-type">${isVideo ? 'VIDEO' : 'IMAGE'}</div>
+            </div>
+            <div class="media-info">
+                <p>${item.file_name || 'Unnamed'}</p>
+                <small>${item.width}x${item.height}</small>
+            </div>
+        `;
+        
+        grid.appendChild(mediaItem);
+    });
+}
+
+// Select media for Smart+ ad
+function selectMediaForSmartAd(media, allowMultiple) {
+    if (allowMultiple) {
+        // Toggle selection
+        const index = smartState.currentMediaSelection.findIndex(m => m.file_id === media.file_id);
+        
+        if (index > -1) {
+            smartState.currentMediaSelection.splice(index, 1);
+        } else if (smartState.currentMediaSelection.length < 10) {
+            smartState.currentMediaSelection.push(media);
+        } else {
+            showToast('Maximum 10 assets per ad', 'error');
+            return;
+        }
+        
+        // Update counter
+        const counter = document.getElementById('selection-counter');
+        counter.textContent = `${smartState.currentMediaSelection.length} selected`;
+        
+        // Update visual selection
+        updateMediaSelectionVisual();
+    } else {
+        // Single selection
+        smartState.currentMediaSelection = [media];
+        confirmMediaSelection();
+    }
+}
+
+// Update media selection visual
+function updateMediaSelectionVisual() {
+    const items = document.querySelectorAll('.media-item');
+    items.forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    smartState.currentMediaSelection.forEach(media => {
+        // Find and mark as selected
+        items.forEach(item => {
+            if (item.innerHTML.includes(media.file_name)) {
+                item.classList.add('selected');
+            }
+        });
+    });
+}
+
+// Confirm media selection
+function confirmMediaSelection() {
+    if (smartState.currentMediaSelection.length === 0) {
+        showToast('Please select at least one asset', 'error');
+        return;
+    }
+    
+    const adIndex = smartState.currentAdIndex;
+    const ad = smartState.ads.find(a => a.index === adIndex);
+    
+    if (ad) {
+        ad.media = smartState.currentMediaSelection;
+        
+        // Update creative grid display
+        const grid = document.getElementById(`creative-grid-${adIndex}`);
+        grid.innerHTML = '';
+        
+        smartState.currentMediaSelection.forEach(media => {
+            const assetDiv = document.createElement('div');
+            assetDiv.className = 'creative-asset-item';
+            
+            const isVideo = media.material_type === 'VIDEO';
+            
+            assetDiv.innerHTML = `
+                ${isVideo ? 
+                    `<video src="${media.url}" muted></video>` : 
+                    `<img src="${media.url}" alt="${media.file_name}">`
+                }
+                <span class="asset-type">${isVideo ? 'VIDEO' : 'IMAGE'}</span>
+                <button class="remove-asset" onclick="removeAsset(${adIndex}, '${media.file_id}')">×</button>
+            `;
+            
+            grid.appendChild(assetDiv);
+        });
+        
+        // Add button to add more
+        if (ad.media.length < 10) {
+            const addBtn = document.createElement('button');
+            addBtn.className = 'add-creative-btn';
+            addBtn.onclick = () => openMediaModal(adIndex, true);
+            addBtn.innerHTML = `+ Add More<br><small>${10 - ad.media.length} slots remaining</small>`;
+            grid.appendChild(addBtn);
+        }
+        
+        // Store media IDs
+        document.getElementById(`media-${adIndex}`).value = ad.media.map(m => m.file_id).join(',');
+    }
+    
+    closeMediaModal();
+}
+
+// Remove asset
+function removeAsset(adIndex, fileId) {
+    const ad = smartState.ads.find(a => a.index === adIndex);
+    if (ad) {
+        ad.media = ad.media.filter(m => m.file_id !== fileId);
+        
+        // Refresh display
+        smartState.currentAdIndex = adIndex;
+        smartState.currentMediaSelection = ad.media;
+        confirmMediaSelection();
+    }
+}
+
+// Close media modal
+function closeMediaModal() {
+    document.getElementById('media-modal').style.display = 'none';
+    smartState.currentMediaSelection = [];
+}
+
+// Switch media tab
+function switchMediaTab(tab, event) {
+    event.preventDefault();
+    
+    // Update tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Update content
+    document.querySelectorAll('.media-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(`media-${tab}-tab`).classList.add('active');
+}
+
+// Review Smart+ ads
+function reviewSmartAds() {
+    if (smartState.ads.length === 0) {
+        showToast('Please create at least one ad', 'error');
+        return;
+    }
+    
+    // Validate all ads
+    for (const ad of smartState.ads) {
+        const adName = document.getElementById(`ad-name-${ad.index}`).value;
+        
+        if (!adName) {
+            showToast(`Please enter ad name for Creative Set ${ad.index}`, 'error');
+            return;
+        }
+        
+        if (!ad.media || ad.media.length === 0) {
+            showToast(`Please add media for Creative Set ${ad.index}`, 'error');
+            return;
+        }
+        
+        // Check at least one text
+        let hasText = false;
+        for (const textNum of ad.texts) {
+            const text = document.getElementById(`ad-text-${ad.index}-${textNum}`)?.value;
+            if (text && text.trim()) {
+                hasText = true;
+                break;
+            }
+        }
+        
+        if (!hasText) {
+            showToast(`Please add at least one text for Creative Set ${ad.index}`, 'error');
+            return;
+        }
+    }
+    
+    generateSmartReviewSummary();
+    nextStep();
+}
+
+// Generate review summary for Smart+ campaign
+function generateSmartReviewSummary() {
+    // Campaign summary
+    const campaignSummary = document.getElementById('campaign-summary');
+    const campaignBudget = document.getElementById('campaign-budget').value;
+    const autoTargeting = document.getElementById('auto-targeting').checked;
+    const autoPlacement = document.getElementById('auto-placement').checked;
+    const creativeOptimization = document.getElementById('creative-optimization').checked;
+    
+    campaignSummary.innerHTML = `
+        <p><strong>Campaign Name:</strong> ${document.getElementById('campaign-name').value}</p>
+        <p><strong>Campaign Type:</strong> <span class="badge-smart">Smart+</span></p>
+        <p><strong>Objective:</strong> Lead Generation</p>
+        <p><strong>Daily Budget:</strong> $${campaignBudget}</p>
+        <p><strong>AI Features:</strong></p>
+        <ul style="margin-left: 20px;">
+            ${autoTargeting ? '<li>✓ Automated Audience Targeting</li>' : ''}
+            ${autoPlacement ? '<li>✓ Smart Placement Optimization</li>' : ''}
+            ${creativeOptimization ? '<li>✓ Creative Optimization</li>' : ''}
+        </ul>
+    `;
+    
+    // Ad Group summary
+    const adGroupSummary = document.getElementById('adgroup-summary');
+    adGroupSummary.innerHTML = `
+        <p><strong>Ad Group Name:</strong> ${document.getElementById('adgroup-name').value}</p>
+        <p><strong>Daily Budget:</strong> $${document.getElementById('budget').value}</p>
+        <p><strong>Smart Bid:</strong> $${document.getElementById('bid-price').value}</p>
+        <p><strong>Targeting:</strong> AI-Optimized (United States)</p>
+        <p><strong>Placement:</strong> Automatic (All TikTok placements)</p>
+    `;
+    
+    // Ads summary
+    const adsSummary = document.getElementById('ads-summary');
+    adsSummary.innerHTML = '';
+    
+    smartState.ads.forEach(ad => {
+        const adName = document.getElementById(`ad-name-${ad.index}`).value;
+        const cta = document.getElementById(`cta-${ad.index}`).value;
+        
+        // Count text variations
+        let textCount = 0;
+        ad.texts.forEach(textNum => {
+            const text = document.getElementById(`ad-text-${ad.index}-${textNum}`)?.value;
+            if (text && text.trim()) textCount++;
+        });
+        
+        const adItem = document.createElement('div');
+        adItem.className = 'summary-ad-item';
+        adItem.innerHTML = `
+            <h4>${adName}</h4>
+            <p><strong>Creative Assets:</strong> ${ad.media.length} ${ad.media.length > 1 ? 'assets' : 'asset'}</p>
+            <p><strong>Text Variations:</strong> ${textCount} variation${textCount > 1 ? 's' : ''}</p>
+            <p><strong>CTA:</strong> ${cta.replace('_', ' ')}</p>
+            <div style="margin-top: 10px;">
+                ${ad.media.map(m => `
+                    <span style="display: inline-block; margin: 2px; padding: 3px 8px; background: #f0f0f0; border-radius: 4px; font-size: 12px;">
+                        ${m.material_type === 'VIDEO' ? '🎥' : '🖼️'} ${m.file_name || 'Asset'}
+                    </span>
+                `).join('')}
+            </div>
+        `;
+        adsSummary.appendChild(adItem);
+    });
+}
+
+// Publish Smart+ Campaign
+async function publishSmartCampaign() {
+    showLoading();
+    
+    try {
+        // Create all ads
+        const adPromises = [];
+        
+        for (const ad of smartState.ads) {
+            const adName = document.getElementById(`ad-name-${ad.index}`).value;
+            const identity = document.getElementById(`identity-${ad.index}`).value;
+            const cta = document.getElementById(`cta-${ad.index}`).value;
+            const destinationUrl = document.getElementById(`destination-url-${ad.index}`).value;
+            
+            // Collect all text variations
+            const texts = [];
+            ad.texts.forEach(textNum => {
+                const text = document.getElementById(`ad-text-${ad.index}-${textNum}`)?.value;
+                if (text && text.trim()) {
+                    texts.push(text.trim());
+                }
+            });
+            
+            // Create ad for each media asset (Smart+ supports multiple)
+            const adData = {
+                adgroup_id: smartState.adGroupId,
+                ad_name: adName,
+                ad_format: 'SINGLE_VIDEO', // Will be determined by media type
+                media_list: ad.media.map(m => m.file_id),
+                ad_texts: texts,
+                identity_id: identity,
+                call_to_action: cta,
+                landing_page_url: destinationUrl,
+                smart_creative: true // Flag for Smart+ creative
+            };
+            
+            adPromises.push(apiRequest('create_smart_ad', adData));
+        }
+        
+        // Execute all ad creations
+        const results = await Promise.all(adPromises);
+        
+        // Check results
+        const successCount = results.filter(r => r.success).length;
+        const failCount = results.length - successCount;
+        
+        if (successCount > 0) {
+            showToast(`Smart+ Campaign published! ${successCount} ad${successCount > 1 ? 's' : ''} created successfully`, 'success');
+            
+            // Redirect after success
+            setTimeout(() => {
+                window.location.href = 'campaign-select.php';
+            }, 2000);
+        } else {
+            showToast('Failed to create ads. Please check your settings.', 'error');
+        }
+        
+        if (failCount > 0) {
+            console.error('Some ads failed:', results.filter(r => !r.success));
+        }
+        
+    } catch (error) {
+        showToast('Error publishing campaign: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Utility functions
+function formatToTikTokDateTime(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = '00';
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+async function apiRequest(action, data) {
+    // Use main API which will route to api-smart.php for Smart+ actions
+    const response = await fetch('api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            action: action,
+            ...data
+        })
+    });
+    
+    return await response.json();
+}
+
+function showLoading() {
+    document.getElementById('loading').style.display = 'flex';
+}
+
+function hideLoading() {
+    document.getElementById('loading').style.display = 'none';
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast show ' + type;
+    
+    setTimeout(() => {
+        toast.className = 'toast';
+    }, 3000);
+}
+
+// File upload functions
+function refreshMediaLibrary() {
+    loadMediaLibrary(true);
+}
+
+async function syncTikTokLibrary() {
+    showLoading();
+    try {
+        const response = await apiRequest('sync_tiktok_media', {});
+        
+        if (response.success) {
+            showToast('Media synced successfully', 'success');
+            loadMediaLibrary(true);
+        } else {
+            showToast(response.message || 'Failed to sync media', 'error');
+        }
+    } catch (error) {
+        showToast('Error syncing media: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}

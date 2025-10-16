@@ -72,6 +72,13 @@ logToFile("Request Data: " . json_encode($requestData, JSON_PRETTY_PRINT));
 header('Content-Type: application/json');
 
 try {
+    // Handle Smart+ Campaign actions separately
+    if (in_array($action, ['create_smart_campaign', 'create_smart_adgroup', 'create_smart_ad', 'get_smart_campaign_insights'])) {
+        // Forward to Smart+ API
+        require_once 'api-smart.php';
+        exit;
+    }
+    
     switch ($action) {
         case 'get_advertisers':
             // Get list of advertiser accounts for the authenticated user
@@ -161,7 +168,8 @@ try {
             echo json_encode([
                 'success' => true,
                 'message' => 'Advertiser selected successfully',
-                'advertiser_id' => $selectedAdvertiserId
+                'advertiser_id' => $selectedAdvertiserId,
+                'redirect' => 'campaign-select.php'
             ]);
             exit; // Ensure we exit to prevent any additional output
             
@@ -214,16 +222,9 @@ try {
                 'campaign_name' => $data['campaign_name'],
                 'objective_type' => 'LEAD_GENERATION',
                 'budget_mode' => $data['budget_mode'] ?? 'BUDGET_MODE_DAY',
+                'budget' => floatval($data['budget'] ?? 20),
                 'operation_status' => 'ENABLE'
             ];
-            
-            // Add CBO if enabled
-            if (!empty($data['budget_optimize_on']) && $data['budget_optimize_on'] === true) {
-                $params['budget_optimize_on'] = true;
-            }
-
-            // Budget is always required for Lead Generation campaigns
-            $params['budget'] = floatval($data['budget'] ?? 20);
 
             // Schedule times are optional
             if (!empty($data['schedule_start_time'])) {

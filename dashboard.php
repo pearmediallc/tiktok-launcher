@@ -55,25 +55,11 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
 
                 <div class="form-section">
                     <h3>Budget Configuration</h3>
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="campaign-cbo" onchange="toggleCBO()">
-                            Enable Campaign Budget Optimization (CBO)
-                        </label>
-                        <small>When disabled, you can set budget at ad group level for better control</small>
-                    </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Budget Mode</label>
-                            <select id="campaign-budget-mode" onchange="toggleCampaignBudget()">
-                                <option value="BUDGET_MODE_DAY" selected>Daily Budget</option>
-                                <option value="BUDGET_MODE_DYNAMIC_DAILY_BUDGET">Dynamic Daily Budget</option>
-                                <option value="BUDGET_MODE_TOTAL">Total Budget (Lifetime)</option>
-                            </select>
-                        </div>
-                        <div class="form-group" id="campaign-budget-container">
-                            <label>Budget Amount ($) - Set low, control at ad group</label>
-                            <input type="number" id="campaign-budget" value="20" min="20" placeholder="20">
+                            <label>Campaign Budget ($)</label>
+                            <input type="number" id="campaign-budget" value="20" min="20" placeholder="20" required>
+                            <small>Minimum budget: $20</small>
                         </div>
                     </div>
                 </div>

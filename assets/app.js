@@ -205,29 +205,6 @@ function getDaypartingData() {
     };
 }
 
-// Toggle CBO and update budget requirements
-function toggleCBO() {
-    const cboEnabled = document.getElementById('campaign-cbo').checked;
-    const budgetInput = document.getElementById('campaign-budget');
-    
-    if (cboEnabled) {
-        // CBO enabled - campaign budget is important
-        budgetInput.setAttribute('required', 'true');
-        budgetInput.min = 50; // Higher minimum for CBO
-        if (budgetInput.value < 50) budgetInput.value = 50;
-    } else {
-        // CBO disabled - can use minimum budget
-        budgetInput.removeAttribute('required');
-        budgetInput.min = 20; // Minimum budget
-        if (!budgetInput.value) budgetInput.value = 20;
-    }
-}
-
-// Toggle campaign budget visibility (kept for compatibility)
-function toggleCampaignBudget() {
-    // Budget is always visible and required for Lead Generation campaigns
-    // The actual budget control happens at ad group level
-}
 
 // Step navigation
 function nextStep() {
@@ -263,8 +240,6 @@ function prevStep() {
 // Campaign creation
 async function createCampaign() {
     const campaignName = document.getElementById('campaign-name').value.trim();
-    const cboEnabled = document.getElementById('campaign-cbo').checked;
-    const campaignBudgetMode = document.getElementById('campaign-budget-mode').value;
     const campaignBudget = parseFloat(document.getElementById('campaign-budget').value) || 0;
     const startDate = document.getElementById('campaign-start-date').value;
     const endDate = document.getElementById('campaign-end-date').value;
@@ -275,10 +250,8 @@ async function createCampaign() {
         return;
     }
     
-    // Budget is always required for Lead Generation campaigns
-    const minBudget = cboEnabled ? 50 : 20;
-    if (!campaignBudget || campaignBudget < minBudget) {
-        showToast(`Please enter a valid budget amount (minimum $${minBudget})`, 'error');
+    if (!campaignBudget || campaignBudget < 20) {
+        showToast('Campaign budget must be at least $20', 'error');
         return;
     }
 
@@ -287,14 +260,9 @@ async function createCampaign() {
     try {
         const params = {
             campaign_name: campaignName,
-            budget_mode: campaignBudgetMode,
-            budget: campaignBudget || 20 // Always include budget
+            budget: campaignBudget,
+            budget_mode: 'BUDGET_MODE_DAY'
         };
-        
-        // Add CBO parameter if enabled
-        if (cboEnabled) {
-            params.budget_optimize_on = true;
-        }
         
         // Add schedule times if provided
         if (startDate) {
@@ -303,7 +271,7 @@ async function createCampaign() {
         }
 
         // Store budget mode for ad group to use
-        state.campaignBudgetMode = campaignBudgetMode;
+        state.campaignBudgetMode = 'BUDGET_MODE_DAY';
 
         // Add end time if provided
         if (endDate) {
@@ -418,8 +386,8 @@ async function createAdGroup() {
             age_groups: ['AGE_18_24', 'AGE_25_34', 'AGE_35_44', 'AGE_45_54', 'AGE_55_100'],
             gender: 'GENDER_UNLIMITED',  // All genders
 
-            // BUDGET AND SCHEDULE (must match campaign budget_mode)
-            budget_mode: state.campaignBudgetMode || budgetMode,  // Use campaign's budget mode
+            // BUDGET AND SCHEDULE (use campaign's budget mode if set, otherwise use ad group's)
+            budget_mode: state.campaignBudgetMode || budgetMode,  // Use campaign's budget mode if available
             budget: budget,
             schedule_type: 'SCHEDULE_FROM_NOW',  // Set start time and run continuously
             schedule_start_time: scheduleStartTime,
@@ -1574,10 +1542,13 @@ function reviewAds() {
 function generateReviewSummary() {
     // Campaign summary
     const campaignSummary = document.getElementById('campaign-summary');
+    const campaignBudget = document.getElementById('campaign-budget').value;
+    
     campaignSummary.innerHTML = `
         <p><strong>Campaign Name:</strong> ${document.getElementById('campaign-name').value}</p>
         <p><strong>Objective:</strong> Lead Generation</p>
         <p><strong>Type:</strong> Manual Campaign</p>
+        <p><strong>Campaign Budget:</strong> $${campaignBudget}/day</p>
     `;
 
     // Ad Group summary

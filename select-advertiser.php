@@ -372,7 +372,7 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                 if (result.success) {
                     showSuccess('Advertiser account selected successfully');
                     setTimeout(() => {
-                        window.location.href = 'dashboard.php';
+                        window.location.href = result.redirect || 'campaign-select.php';
                     }, 1000);
                 } else {
                     showError('Failed to set advertiser: ' + (result.message || result.error || 'Unknown error'));
