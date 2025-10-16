@@ -102,6 +102,9 @@ try {
                 'schedule_type' => 'SCHEDULE_FROM_NOW',
                 'schedule_start_time' => date('Y-m-d H:i:s'),
                 
+                // Always provide end_time - set to 1 year from now as default
+                'end_time' => date('Y-m-d H:i:s', strtotime('+1 year')),
+                
                 // Targeting (basic for Smart+)
                 'location_ids' => ['6252001'], // United States
                 'spc_audience_age' => '18+',
@@ -118,9 +121,24 @@ try {
             if (!empty($data['schedule_start_time'])) {
                 $params['schedule_start_time'] = $data['schedule_start_time'];
                 $params['schedule_type'] = 'SCHEDULE_START_END';
-            }
-            if (!empty($data['schedule_end_time'])) {
-                $params['schedule_end_time'] = $data['schedule_end_time'];
+                
+                // If end time is provided, use it; otherwise set a default end time (1 year from start)
+                if (!empty($data['schedule_end_time'])) {
+                    $params['schedule_end_time'] = $data['schedule_end_time'];
+                } else {
+                    // Set default end time to 1 year from start time
+                    $startTime = new DateTime($data['schedule_start_time']);
+                    $endTime = clone $startTime;
+                    $endTime->add(new DateInterval('P1Y')); // Add 1 year
+                    $params['schedule_end_time'] = $endTime->format('Y-m-d H:i:s');
+                }
+                
+                // Also add end_time field if API expects it (some inconsistency in TikTok API)
+                $params['end_time'] = $params['schedule_end_time'];
+            } else {
+                // No start time provided, use immediate start
+                $params['schedule_type'] = 'SCHEDULE_FROM_NOW';
+                $params['schedule_start_time'] = date('Y-m-d H:i:s');
             }
             
             logToFile("=== SMART+ CAMPAIGN API CALL ===");
