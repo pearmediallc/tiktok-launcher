@@ -306,7 +306,8 @@ if (!isset($_SESSION['selected_advertiser_id'])) {
     <div id="debug-console" style="position: fixed; bottom: 10px; right: 10px; width: 400px; max-height: 300px; background: #1a1a1a; color: #0f0; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; overflow-y: auto; display: none; z-index: 10000;">
         <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
             <strong style="color: #fff;">Debug Console</strong>
-            <button onclick="clearDebugConsole()" style="margin-left: auto; padding: 2px 8px; background: #333; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Clear</button>
+            <button onclick="loadServerLogs()" style="margin-left: auto; padding: 2px 8px; background: #0a84ff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Server Logs</button>
+            <button onclick="clearDebugConsole()" style="margin-left: 5px; padding: 2px 8px; background: #333; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Clear</button>
             <button onclick="toggleDebugConsole()" style="margin-left: 5px; padding: 2px 8px; background: #333; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Hide</button>
         </div>
         <div id="debug-output" style="white-space: pre-wrap; word-wrap: break-word;"></div>
@@ -334,6 +335,27 @@ if (!isset($_SESSION['selected_advertiser_id'])) {
         
         function clearDebugConsole() {
             document.getElementById('debug-output').innerHTML = '';
+        }
+        
+        async function loadServerLogs() {
+            try {
+                const response = await fetch('api.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_debug_logs' })
+                });
+                const result = await response.json();
+                const debugOutput = document.getElementById('debug-output');
+                if (result.success) {
+                    debugOutput.innerHTML += `<span style="color: #888;">[${new Date().toLocaleTimeString()}]</span> <span style="color: #ff0;">SERVER LOGS:</span>\n${result.logs}\n\n`;
+                    debugOutput.scrollTop = debugOutput.scrollHeight;
+                } else {
+                    debugOutput.innerHTML += `<span style="color: #f00;">Failed to load server logs: ${result.message}</span>\n`;
+                }
+            } catch (error) {
+                const debugOutput = document.getElementById('debug-output');
+                debugOutput.innerHTML += `<span style="color: #f00;">Error loading server logs: ${error.message}</span>\n`;
+            }
         }
         
         // Override console.log to also display in debug console

@@ -837,33 +837,47 @@ function formatToTikTokDateTime(date) {
 
 async function apiRequest(action, data) {
     try {
-        // Use main API which will route to api-smart.php for Smart+ actions
-        console.log(`API Request: ${action}`, data);
+        const requestPayload = {
+            action: action,
+            ...data
+        };
+        
+        console.log('=== API REQUEST DETAILS ===');
+        console.log('Endpoint URL:', 'api.php');
+        console.log('HTTP Method:', 'POST');
+        console.log('Action:', action);
+        console.log('Request Headers:', { 'Content-Type': 'application/json' });
+        console.log('Full Request Payload:', JSON.stringify(requestPayload, null, 2));
+        console.log('==============================');
         
         const response = await fetch('api.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: action,
-                ...data
-            })
+            body: JSON.stringify(requestPayload)
         });
         
+        console.log('=== API RESPONSE DETAILS ===');
+        console.log('Response Status:', response.status);
+        console.log('Response Status Text:', response.statusText);
+        console.log('Response Headers:', Object.fromEntries(response.headers.entries()));
+        
         const responseText = await response.text();
-        console.log('API Response Text:', responseText);
+        console.log('Raw Response Text Length:', responseText.length);
+        console.log('Raw Response Text:', responseText);
+        console.log('===============================');
         
         // Try to parse JSON
         try {
             const jsonResponse = JSON.parse(responseText);
-            console.log('API Response JSON:', jsonResponse);
+            console.log('Parsed JSON Response:', JSON.stringify(jsonResponse, null, 2));
             return jsonResponse;
         } catch (parseError) {
-            console.error('Failed to parse JSON response:', parseError);
-            console.error('Response was:', responseText);
+            console.error('JSON Parse Error:', parseError.message);
+            console.error('Failed to parse response:', responseText);
             throw new Error('Invalid JSON response from server: ' + responseText.substring(0, 200));
         }
     } catch (error) {
-        console.error('API Request Failed:', error);
+        console.error('API Request Exception:', error);
         throw error;
     }
 }

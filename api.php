@@ -67,7 +67,12 @@ $action = $_GET['action'] ?? $_POST['action'] ?? $requestData['action'] ?? '';
 // Log incoming request
 logToFile("============ INCOMING REQUEST ============");
 logToFile("Action: {$action}");
+logToFile("=== API REQUEST RECEIVED ===");
+logToFile("Action: " . $action);
+logToFile("Advertiser ID: " . $advertiser_id);
 logToFile("Request Data: " . json_encode($requestData, JSON_PRETTY_PRINT));
+logToFile("HTTP Headers: " . json_encode(getallheaders(), JSON_PRETTY_PRINT));
+logToFile("==============================");
 
 header('Content-Type: application/json');
 
@@ -75,6 +80,7 @@ try {
     switch ($action) {
         // Smart+ Campaign actions
         case 'create_smart_campaign':
+            logToFile("Processing Smart+ Campaign Creation...");
             $data = $requestData;
             
             // Smart+ campaigns don't need budget at campaign level
@@ -94,24 +100,40 @@ try {
                 $params['schedule_end_time'] = $data['schedule_end_time'];
             }
             
-            logToFile("Smart+ Campaign Params: " . json_encode($params, JSON_PRETTY_PRINT));
+            logToFile("=== TIKTOK API CALL DETAILS ===");
+            logToFile("SDK Config: " . json_encode($config, JSON_PRETTY_PRINT));
+            logToFile("TikTok API Endpoint: Campaign Create");
+            logToFile("TikTok API Params: " . json_encode($params, JSON_PRETTY_PRINT));
+            logToFile("================================");
             
             $campaign = new Campaign($config);
             $result = $campaign->create($params);
             
+            logToFile("=== TIKTOK API RESPONSE ===");
+            logToFile("TikTok Response: " . json_encode($result, JSON_PRETTY_PRINT));
+            logToFile("===========================");
+            
+            $response = null;
             if ($result['code'] == 0) {
-                echo json_encode([
+                $response = [
                     'success' => true,
                     'data' => $result['data'],
                     'message' => 'Smart+ Campaign created successfully'
-                ]);
+                ];
+                logToFile("=== SUCCESS RESPONSE ===");
+                logToFile("Sending success response: " . json_encode($response, JSON_PRETTY_PRINT));
+                echo json_encode($response);
             } else {
-                echo json_encode([
+                $response = [
                     'success' => false,
                     'message' => $result['message'] ?? 'Failed to create Smart+ campaign',
                     'error' => $result
-                ]);
+                ];
+                logToFile("=== ERROR RESPONSE ===");
+                logToFile("Sending error response: " . json_encode($response, JSON_PRETTY_PRINT));
+                echo json_encode($response);
             }
+            logToFile("Response sent, exiting...");
             exit;
             
         case 'create_smart_adgroup':
@@ -1839,10 +1861,31 @@ try {
             echo json_encode(['success' => true]);
             break;
 
+        case 'get_debug_logs':
+            // Return recent log entries for debugging
+            $logFile = __DIR__ . '/api_debug.log';
+            if (file_exists($logFile)) {
+                $logs = file_get_contents($logFile);
+                // Get last 50 lines
+                $lines = explode("\n", $logs);
+                $lastLines = array_slice($lines, -50);
+                echo json_encode([
+                    'success' => true,
+                    'logs' => implode("\n", $lastLines)
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'No log file found'
+                ]);
+            }
+            exit;
+            
         default:
+            logToFile("Unknown action received: " . $action);
             echo json_encode([
                 'success' => false,
-                'message' => 'Invalid action'
+                'message' => 'Invalid action: ' . $action
             ]);
     }
 
