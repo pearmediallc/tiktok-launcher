@@ -193,7 +193,7 @@ if (!isset($_SESSION['selected_advertiser_id'])) {
                         <div style="margin-bottom: 15px;">
                             <button type="button" class="btn-secondary" onclick="selectAllHours()" style="padding: 8px 15px; font-size: 13px;">Select All</button>
                             <button type="button" class="btn-secondary" onclick="clearAllHours()" style="padding: 8px 15px; font-size: 13px;">Clear All</button>
-                            <button type="button" class="btn-secondary" onclick="selectBusinessHours()" style="padding: 8px 15px; font-size: 13px;">Business Hours (9-17)</button>
+                            <button type="button" class="btn-secondary" onclick="selectBusinessHours()" style="padding: 8px 15px; font-size: 13px;">Business Hours (8-17)</button>
                             <button type="button" class="btn-secondary" onclick="selectPrimeTime()" style="padding: 8px 15px; font-size: 13px;">Prime Time (18-22)</button>
                         </div>
                         <div class="dayparting-grid">

@@ -413,39 +413,43 @@ h3 {
     font-weight: normal;
 }
 
-/* Call to Action Buttons */
-.cta-buttons {
+/* Call to Action Chips */
+.cta-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
     margin-top: 10px;
 }
 
-.cta-button {
-    padding: 10px 20px;
-    background: #f8f9fa;
-    border: 2px solid #e9ecef;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
+.cta-chip {
+    padding: 6px 12px;
+    background: #f0f0f0;
+    border: 2px solid #ddd;
+    border-radius: 20px;
+    font-size: 12px;
     cursor: pointer;
     transition: all 0.3s;
-    min-width: 120px;
-    text-align: center;
+    user-select: none;
 }
 
-.cta-button:hover {
-    background: #e9ecef;
-    border-color: #dee2e6;
+.cta-chip:hover {
+    background: #e0e0e0;
     transform: translateY(-1px);
 }
 
-.cta-button.selected {
+.cta-chip.selected {
     background: #1a1a1a;
     color: white;
     border-color: #1a1a1a;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(26, 26, 26, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(26, 26, 26, 0.2);
+}
+
+.cta-counter {
+    font-size: 12px;
+    font-weight: normal;
+    color: #666;
+    margin-left: 8px;
 }
 
 /* Review Section */

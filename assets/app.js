@@ -469,12 +469,14 @@ function addAdForm(index, duplicateFrom = null) {
     adCard.className = 'ad-card';
     adCard.id = `ad-${index}`;
 
-    const mainCTAs = [
-        'LEARN_MORE',
-        'INTERESTED', 
-        'APPLY_NOW',
-        'SIGN_UP',
-        'CONTACT_US'
+    const allCTAs = [
+        'APPLY_NOW', 'BOOK_NOW', 'CALL_NOW', 'CHECK_AVAILABLILITY', 'CONTACT_US',
+        'DOWNLOAD_NOW', 'EXPERIENCE_NOW', 'GET_QUOTE', 'GET_SHOWTIMES', 'GET_TICKETS_NOW',
+        'INSTALL_NOW', 'INTERESTED', 'LEARN_MORE', 'LISTEN_NOW', 'ORDER_NOW',
+        'PLAY_GAME', 'PREORDER_NOW', 'READ_MORE', 'SEND_MESSAGE', 'SHOP_NOW',
+        'SIGN_UP', 'SUBSCRIBE', 'VIEW_NOW', 'VIEW_PROFILE', 'VISIT_STORE',
+        'WATCH_LIVE', 'WATCH_NOW', 'JOIN_THIS_HASHTAG', 'SHOOT_WITH_THIS_EFFECT', 
+        'VIEW_VIDEO_WITH_THIS_EFFECT'
     ];
 
     adCard.innerHTML = `
@@ -528,15 +530,15 @@ function addAdForm(index, duplicateFrom = null) {
         </div>
 
         <div class="form-group">
-            <label>Call to Action</label>
-            <div class="cta-buttons" id="cta-buttons-${index}">
-                ${mainCTAs.map(cta => `
-                    <button type="button" class="cta-button" data-cta="${cta}" onclick="selectCTA(${index}, '${cta}')">
+            <label>Call to Action <span class="cta-counter" id="cta-counter-${index}">(0/5 selected)</span></label>
+            <div class="cta-chips" id="cta-chips-${index}">
+                ${allCTAs.map(cta => `
+                    <div class="cta-chip" data-cta="${cta}" onclick="toggleCTA(${index}, '${cta}')">
                         ${cta.replace(/_/g, ' ')}
-                    </button>
+                    </div>
                 `).join('')}
             </div>
-            <input type="hidden" id="cta-${index}" value="LEARN_MORE">
+            <input type="hidden" id="cta-${index}" value="">
         </div>
 
         <div class="form-group">
@@ -558,7 +560,7 @@ function addAdForm(index, duplicateFrom = null) {
     populateIdentitiesForAd(index);
 
     // Select LEARN_MORE as default CTA
-    setTimeout(() => selectCTA(index, 'LEARN_MORE'), 100);
+    setTimeout(() => toggleCTA(index, 'LEARN_MORE'), 100);
 
     // If duplicating, copy values
     if (duplicateFrom !== null) {
@@ -614,20 +616,46 @@ function removeAd(index) {
     }
 }
 
-// Select CTA
-function selectCTA(adIndex, cta) {
-    // Remove selected class from all CTA buttons for this ad
-    const buttons = document.querySelectorAll(`#cta-buttons-${adIndex} .cta-button`);
-    buttons.forEach(button => button.classList.remove('selected'));
-
-    // Add selected class to clicked CTA
-    const selectedButton = document.querySelector(`#cta-buttons-${adIndex} .cta-button[data-cta="${cta}"]`);
-    if (selectedButton) {
-        selectedButton.classList.add('selected');
+// Toggle CTA selection (max 5)
+function toggleCTA(adIndex, cta) {
+    const chip = document.querySelector(`#cta-chips-${adIndex} .cta-chip[data-cta="${cta}"]`);
+    const hiddenInput = document.getElementById(`cta-${adIndex}`);
+    const counter = document.getElementById(`cta-counter-${adIndex}`);
+    
+    let selectedCTAs = hiddenInput.value ? hiddenInput.value.split(',') : [];
+    
+    if (chip.classList.contains('selected')) {
+        // Remove from selection
+        chip.classList.remove('selected');
+        selectedCTAs = selectedCTAs.filter(c => c !== cta);
+    } else {
+        // Add to selection if under limit
+        if (selectedCTAs.length < 5) {
+            chip.classList.add('selected');
+            selectedCTAs.push(cta);
+        } else {
+            showToast('You can select maximum 5 Call to Action options', 'error');
+            return;
+        }
     }
+    
+    // Update hidden input and counter
+    hiddenInput.value = selectedCTAs.join(',');
+    counter.textContent = `(${selectedCTAs.length}/5 selected)`;
+    
+    // Update counter color
+    if (selectedCTAs.length >= 5) {
+        counter.style.color = '#dc3545'; // Red when at limit
+    } else if (selectedCTAs.length > 0) {
+        counter.style.color = '#28a745'; // Green when selected
+    } else {
+        counter.style.color = '#666'; // Gray when none selected
+    }
+}
 
-    // Update hidden input
-    document.getElementById(`cta-${adIndex}`).value = cta;
+// Legacy function for compatibility - now selects the first CTA
+function selectCTA(adIndex, cta) {
+    toggleCTA(adIndex, cta);
 }
 
 // Media modal
@@ -1636,50 +1664,71 @@ async function publishAll() {
             const selectedOption = identitySelect.options[identitySelect.selectedIndex];
             const identityType = selectedOption ? selectedOption.getAttribute('data-identity-type') : 'CUSTOMIZED_USER';
             
-            const adData = {
-                adgroup_id: state.adGroupId,
-                ad_name: document.getElementById(`ad-name-${adIndex}`).value,
-                ad_text: document.getElementById(`ad-text-${adIndex}`).value,
-                call_to_action: document.getElementById(`cta-${adIndex}`).value,
-                landing_page_url: document.getElementById(`destination-url-${adIndex}`).value,
-                identity_id: selectedIdentity,
-                identity_type: identityType || 'CUSTOMIZED_USER',
-                promotion_type: 'WEBSITE'  // Using WEBSITE for Lead Gen campaigns with landing pages
-            };
-
+            // Get selected CTAs
+            const selectedCTAs = document.getElementById(`cta-${adIndex}`).value.split(',').filter(cta => cta.trim());
+            
+            if (selectedCTAs.length === 0) {
+                throw new Error(`Please select at least one Call to Action for Ad #${adIndex + 1}`);
+            }
+            
+            // Create ads for each selected CTA
+            const adPromises = [];
+            
             const creativeType = document.getElementById(`creative-type-${adIndex}`).value;
             const creativeId = document.getElementById(`creative-id-${adIndex}`).value;
             const coverImageId = document.getElementById(`cover-image-id-${adIndex}`)?.value;
 
-            if (creativeType === 'video') {
-                adData.video_id = creativeId;
-                adData.ad_format = 'SINGLE_VIDEO';
-                
-                // For video ads, image_ids is REQUIRED for the video cover
-                if (coverImageId) {
-                    adData.image_ids = [coverImageId];
-                    console.log(`Using cover image_id for video ad: ${coverImageId}`);
+            selectedCTAs.forEach((cta, ctaIndex) => {
+                const adData = {
+                    adgroup_id: state.adGroupId,
+                    ad_name: `${document.getElementById(`ad-name-${adIndex}`).value}${selectedCTAs.length > 1 ? ` - ${cta.replace(/_/g, ' ')}` : ''}`,
+                    ad_text: document.getElementById(`ad-text-${adIndex}`).value,
+                    call_to_action: cta.trim(),
+                    landing_page_url: document.getElementById(`destination-url-${adIndex}`).value,
+                    identity_id: selectedIdentity,
+                    identity_type: identityType || 'CUSTOMIZED_USER',
+                    promotion_type: 'WEBSITE'  // Using WEBSITE for Lead Gen campaigns with landing pages
+                };
+
+                if (creativeType === 'video') {
+                    adData.video_id = creativeId;
+                    adData.ad_format = 'SINGLE_VIDEO';
+                    
+                    // For video ads, image_ids is REQUIRED for the video cover
+                    if (coverImageId) {
+                        adData.image_ids = [coverImageId];
+                        console.log(`Using cover image_id for video ad: ${coverImageId}`);
+                    } else {
+                        console.warn('No cover image_id for video ad - this may cause the ad creation to fail');
+                        // Try to use a default or placeholder image_id if available
+                        adData.image_ids = []; // This will likely fail, but TikTok will provide error details
+                    }
                 } else {
-                    console.warn('No cover image_id for video ad - this may cause the ad creation to fail');
-                    // Try to use a default or placeholder image_id if available
-                    adData.image_ids = []; // This will likely fail, but TikTok will provide error details
+                    adData.image_ids = [creativeId];
+                    adData.ad_format = 'SINGLE_IMAGE';
                 }
-            } else {
-                adData.image_ids = [creativeId];
-                adData.ad_format = 'SINGLE_IMAGE';
-            }
 
-            console.log(`Creating ad ${i+1}/${state.ads.length}:`, adData);
-            const response = await apiRequest('create_ad', adData);
-            console.log(`Ad creation response:`, response);
+                console.log(`Creating ad ${i+1}/${state.ads.length} with CTA ${cta}:`, adData);
+                adPromises.push(apiRequest('create_ad', adData));
+            });
 
-            if (response.success && response.data && response.data.ad_ids && response.data.ad_ids.length > 0) {
-                createdAdIds.push(...response.data.ad_ids);
-                showToast(`Ad ${i+1} created successfully`, 'success');
-            } else {
-                console.error('Ad creation failed:', response);
-                throw new Error(`Failed to create ad ${i+1}: ${response.message || 'Unknown error'}`);
-            }
+            // Wait for all CTA variations to be created
+            const responses = await Promise.all(adPromises);
+            let adSuccessCount = 0;
+            
+            responses.forEach((response, ctaIndex) => {
+                console.log(`Ad creation response for CTA ${selectedCTAs[ctaIndex]}:`, response);
+                
+                if (response.success && response.data && response.data.ad_ids && response.data.ad_ids.length > 0) {
+                    createdAdIds.push(...response.data.ad_ids);
+                    adSuccessCount++;
+                } else {
+                    console.error('Ad creation failed:', response);
+                    throw new Error(`Failed to create ad ${i+1} with CTA ${selectedCTAs[ctaIndex]}: ${response.message || 'Unknown error'}`);
+                }
+            });
+            
+            showToast(`Ad ${i+1} created successfully (${adSuccessCount} variations)`, 'success');
         }
 
         // Ads are created with ENABLE status by default, so they're already published
