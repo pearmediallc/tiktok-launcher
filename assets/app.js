@@ -161,6 +161,18 @@ function toggleDayparting() {
     document.getElementById('dayparting-section').style.display = enabled ? 'block' : 'none';
 }
 
+// Toggle CBO budget section
+function toggleCBOBudget() {
+    const cboEnabled = document.getElementById('cbo-enabled').checked;
+    const budgetSection = document.getElementById('campaign-budget-section');
+    
+    if (cboEnabled) {
+        budgetSection.style.display = 'block';
+    } else {
+        budgetSection.style.display = 'none';
+    }
+}
+
 // Get dayparting data
 function getDaypartingData() {
     if (!document.getElementById('enable-dayparting').checked) {
@@ -240,9 +252,12 @@ function prevStep() {
 // Campaign creation
 async function createCampaign() {
     const campaignName = document.getElementById('campaign-name').value.trim();
-    const campaignBudget = parseFloat(document.getElementById('campaign-budget').value) || 0;
     const startDate = document.getElementById('campaign-start-date').value;
     const endDate = document.getElementById('campaign-end-date').value;
+    
+    // Get CBO settings
+    const cboEnabled = document.getElementById('cbo-enabled').checked;
+    const campaignBudget = cboEnabled ? (parseFloat(document.getElementById('campaign-budget').value) || 0) : null;
 
     // Validate required fields
     if (!campaignName) {
@@ -250,8 +265,8 @@ async function createCampaign() {
         return;
     }
     
-    if (!campaignBudget || campaignBudget < 20) {
-        showToast('Campaign budget must be at least $20', 'error');
+    if (cboEnabled && (!campaignBudget || campaignBudget < 20)) {
+        showToast('Campaign budget must be at least $20 when CBO is enabled', 'error');
         return;
     }
 
@@ -260,9 +275,18 @@ async function createCampaign() {
     try {
         const params = {
             campaign_name: campaignName,
-            budget: campaignBudget,
-            budget_mode: 'BUDGET_MODE_DAY'
+            cbo_enabled: cboEnabled
         };
+        
+        // Set budget parameters based on CBO setting
+        if (cboEnabled) {
+            params.budget = campaignBudget;
+            params.budget_mode = 'BUDGET_MODE_DAY';
+            params.budget_optimize_on = true;
+        } else {
+            params.budget_mode = 'BUDGET_MODE_INFINITE';
+            params.budget_optimize_on = false;
+        }
         
         // Add schedule times if provided
         if (startDate) {

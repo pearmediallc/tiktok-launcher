@@ -60,12 +60,20 @@ if (!isset($_SESSION['selected_advertiser_id'])) {
                 </div>
 
                 <div class="form-section">
-                    <h3>Budget Configuration</h3>
-                    <div class="form-row">
+                    <h3>Budget Optimization</h3>
+                    <div class="feature-toggle">
+                        <label>
+                            <input type="checkbox" id="cbo-enabled" onchange="toggleCBOBudget()">
+                            <span>Campaign Budget Optimization (CBO)</span>
+                        </label>
+                        <small>Enable to set budget at campaign level. When disabled, budget is set only at ad group level.</small>
+                    </div>
+                    
+                    <div id="campaign-budget-section" style="display: none; margin-top: 15px;">
                         <div class="form-group">
-                            <label>Campaign Budget ($)</label>
-                            <input type="number" id="campaign-budget" value="20" min="20" placeholder="20" required>
-                            <small>Minimum budget: $20</small>
+                            <label>Campaign Daily Budget ($)</label>
+                            <input type="number" id="campaign-budget" value="20" min="20" placeholder="20">
+                            <small>Minimum $20 daily budget for campaigns</small>
                         </div>
                     </div>
                 </div>
@@ -143,8 +151,9 @@ if (!isset($_SESSION['selected_advertiser_id'])) {
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Budget Amount ($)</label>
+                            <label>Ad Group Budget Amount ($)</label>
                             <input type="number" id="budget" placeholder="50" min="20" required>
+                            <small>Budget is set at ad group level when CBO is disabled</small>
                         </div>
                     </div>
 

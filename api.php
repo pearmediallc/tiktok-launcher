@@ -463,10 +463,23 @@ try {
                 'advertiser_id' => $advertiser_id,
                 'campaign_name' => $data['campaign_name'],
                 'objective_type' => 'LEAD_GENERATION',
-                'budget_mode' => $data['budget_mode'] ?? 'BUDGET_MODE_DAY',
-                'budget' => floatval($data['budget'] ?? 20),
                 'operation_status' => 'ENABLE'
             ];
+            
+            // Handle CBO (Campaign Budget Optimization) settings
+            if (isset($data['cbo_enabled']) && $data['cbo_enabled'] === true) {
+                // CBO enabled - set budget at campaign level
+                $params['budget_mode'] = $data['budget_mode'] ?? 'BUDGET_MODE_DAY';
+                $params['budget'] = floatval($data['budget'] ?? 20);
+                $params['budget_optimize_on'] = true;
+                logToFile("Manual Campaign CBO Enabled - Campaign budget: " . $params['budget']);
+            } else {
+                // CBO disabled - budget set at ad group level only
+                $params['budget_mode'] = 'BUDGET_MODE_INFINITE';
+                $params['budget_optimize_on'] = false;
+                // No budget parameter needed for BUDGET_MODE_INFINITE
+                logToFile("Manual Campaign CBO Disabled - Budget will be set at ad group level");
+            }
 
             // Schedule times are optional
             if (!empty($data['schedule_start_time'])) {
