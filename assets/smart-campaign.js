@@ -307,14 +307,16 @@ async function createSmartAdGroup() {
             schedule_type: 'SCHEDULE_FROM_NOW',
             schedule_start_time: scheduleStartTime,
             
-            // Smart bidding
-            bid_type: 'BID_TYPE_CUSTOM',
+            // Pacing
             pacing: 'PACING_MODE_SMOOTH'
         };
 
-        // Add bid price if provided
+        // Set bidding type based on whether bid price is provided
         if (bidPrice && bidPrice > 0) {
+            params.bid_type = 'BID_TYPE_CUSTOM';
             params.conversion_bid_price = bidPrice;
+        } else {
+            params.bid_type = 'BID_TYPE_NO_BID';  // Let TikTok Smart+ optimize automatically
         }
 
         const response = await apiRequest('create_smart_adgroup', params);

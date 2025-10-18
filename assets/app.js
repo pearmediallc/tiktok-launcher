@@ -416,9 +416,6 @@ async function createAdGroup() {
             schedule_type: 'SCHEDULE_FROM_NOW',  // Set start time and run continuously
             schedule_start_time: scheduleStartTime,
 
-            // BIDDING
-            bid_type: 'BID_TYPE_CUSTOM',  // Always use custom bidding for conversions
-
             // PACING
             pacing: 'PACING_MODE_SMOOTH',  // Standard delivery
 
@@ -426,9 +423,12 @@ async function createAdGroup() {
             ...getDaypartingData()
         };
 
-        // Add bid price if provided
+        // Set bidding type based on whether bid price is provided
         if (bidPrice && bidPrice > 0) {
+            params.bid_type = 'BID_TYPE_CUSTOM';
             params.conversion_bid_price = bidPrice;  // Target CPA for conversions
+        } else {
+            params.bid_type = 'BID_TYPE_NO_BID';  // Let TikTok optimize automatically
         }
 
         console.log('Sending ad group params:', JSON.stringify(params, null, 2));

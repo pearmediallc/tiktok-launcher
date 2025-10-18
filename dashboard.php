@@ -163,7 +163,7 @@ if (!isset($_SESSION['selected_advertiser_id'])) {
                             <input type="datetime-local" id="start-date" required>
                         </div>
                         <div class="form-group">
-                            <label>Bid Amount ($) <span class="optional">(Optional)</span></label>
+                            <label>Bid Amount ($) <span class="optional">(Optional - TikTok will auto-optimize if empty)</span></label>
                             <input type="number" id="bid-price" placeholder="1.00" step="0.01" min="0.01">
                         </div>
                     </div>

@@ -195,7 +195,7 @@ if (!isset($_SESSION['selected_advertiser_id'])) {
                         <small>Budget is set at ad group level when CBO is disabled</small>
                     </div>
                     <div class="form-group">
-                        <label>Smart Bid <span class="optional">(Optional)</span></label>
+                        <label>Smart Bid <span class="optional">(Optional - TikTok will auto-optimize if empty)</span></label>
                         <input type="number" id="bid-price" value="10" min="0.1" step="0.01" placeholder="10">
                         <small>AI will optimize bidding automatically</small>
                     </div>
