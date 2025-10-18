@@ -406,32 +406,46 @@ h3 {
     margin-top: 5px;
 }
 
-/* Call to Action Chips */
-.cta-chips {
+/* Optional field styling */
+.optional {
+    font-size: 12px;
+    color: #666;
+    font-weight: normal;
+}
+
+/* Call to Action Buttons */
+.cta-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 10px;
     margin-top: 10px;
 }
 
-.cta-chip {
-    padding: 6px 12px;
-    background: #f0f0f0;
-    border: 2px solid #ddd;
-    border-radius: 20px;
-    font-size: 12px;
+.cta-button {
+    padding: 10px 20px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.3s;
+    min-width: 120px;
+    text-align: center;
 }
 
-.cta-chip:hover {
-    background: #e0e0e0;
+.cta-button:hover {
+    background: #e9ecef;
+    border-color: #dee2e6;
+    transform: translateY(-1px);
 }
 
-.cta-chip.selected {
+.cta-button.selected {
     background: #1a1a1a;
     color: white;
     border-color: #1a1a1a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(26, 26, 26, 0.2);
 }
 
 /* Review Section */

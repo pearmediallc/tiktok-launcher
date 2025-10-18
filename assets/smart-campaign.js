@@ -266,7 +266,7 @@ async function createSmartAdGroup() {
     const budget = parseFloat(document.getElementById('budget').value);
     const bidPrice = parseFloat(document.getElementById('bid-price').value);
 
-    if (!adGroupName || !pixelId || !budget || !bidPrice) {
+    if (!adGroupName || !pixelId || !budget) {
         showToast('Please fill in all required fields', 'error');
         return;
     }
@@ -309,9 +309,13 @@ async function createSmartAdGroup() {
             
             // Smart bidding
             bid_type: 'BID_TYPE_CUSTOM',
-            conversion_bid_price: bidPrice,
             pacing: 'PACING_MODE_SMOOTH'
         };
+
+        // Add bid price if provided
+        if (bidPrice && bidPrice > 0) {
+            params.conversion_bid_price = bidPrice;
+        }
 
         const response = await apiRequest('create_smart_adgroup', params);
 

@@ -142,8 +142,8 @@ function selectBusinessHours() {
     document.querySelectorAll('.hour-checkbox').forEach(cb => {
         const hour = parseInt(cb.dataset.hour);
         const day = parseInt(cb.dataset.day);
-        // Monday-Friday (1-5), 9am-5pm (9-17)
-        cb.checked = (day >= 1 && day <= 5 && hour >= 9 && hour < 17);
+        // Monday-Friday (1-5), 8am-5pm (8-17)
+        cb.checked = (day >= 1 && day <= 5 && hour >= 8 && hour < 17);
     });
 }
 
@@ -357,7 +357,7 @@ async function createAdGroup() {
     console.log('Manual input value:', document.getElementById('pixel-manual-input').value);
     console.log('================================');
 
-    if (!adGroupName || !pixelId || !budget || !startDate || !bidPrice) {
+    if (!adGroupName || !pixelId || !budget || !startDate) {
         showToast('Please fill in all required fields (including pixel ID)', 'error');
         console.error('Missing fields - Pixel ID:', pixelId);
         return;
@@ -418,7 +418,6 @@ async function createAdGroup() {
 
             // BIDDING
             bid_type: 'BID_TYPE_CUSTOM',  // Always use custom bidding for conversions
-            conversion_bid_price: bidPrice,  // Target CPA for conversions
 
             // PACING
             pacing: 'PACING_MODE_SMOOTH',  // Standard delivery
@@ -426,6 +425,11 @@ async function createAdGroup() {
             // DAYPARTING (optional)
             ...getDaypartingData()
         };
+
+        // Add bid price if provided
+        if (bidPrice && bidPrice > 0) {
+            params.conversion_bid_price = bidPrice;  // Target CPA for conversions
+        }
 
         console.log('Sending ad group params:', JSON.stringify(params, null, 2));
 
@@ -465,14 +469,12 @@ function addAdForm(index, duplicateFrom = null) {
     adCard.className = 'ad-card';
     adCard.id = `ad-${index}`;
 
-    const defaultCTAs = [
-        'APPLY_NOW', 'BOOK_NOW', 'CALL_NOW', 'CHECK_AVAILABLILITY', 'CONTACT_US',
-        'DOWNLOAD_NOW', 'EXPERIENCE_NOW', 'GET_QUOTE', 'GET_SHOWTIMES', 'GET_TICKETS_NOW',
-        'INSTALL_NOW', 'INTERESTED', 'LEARN_MORE', 'LISTEN_NOW', 'ORDER_NOW',
-        'PLAY_GAME', 'PREORDER_NOW', 'READ_MORE', 'SEND_MESSAGE', 'SHOP_NOW',
-        'SIGN_UP', 'SUBSCRIBE', 'VIEW_NOW', 'VIEW_PROFILE', 'VISIT_STORE',
-        'WATCH_LIVE', 'WATCH_NOW', 'JOIN_THIS_HASHTAG', 'SHOOT_WITH_THIS_EFFECT', 
-        'VIEW_VIDEO_WITH_THIS_EFFECT'
+    const mainCTAs = [
+        'LEARN_MORE',
+        'INTERESTED', 
+        'APPLY_NOW',
+        'SIGN_UP',
+        'CONTACT_US'
     ];
 
     adCard.innerHTML = `
@@ -500,18 +502,14 @@ function addAdForm(index, duplicateFrom = null) {
 
         <div class="form-group" id="cover-image-group-${index}" style="display: none;">
             <label>Cover Image (Required for Video Ads)</label>
-            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <div style="margin-bottom: 10px;">
                 <button type="button" class="btn-secondary" onclick="useVideoThumbnail(${index})" 
-                        id="use-thumbnail-btn-${index}" style="flex: 1;">
+                        id="use-thumbnail-btn-${index}" style="width: 100%;">
                     🎬 Use Video Thumbnail
                 </button>
-                <button type="button" class="btn-secondary" onclick="openMediaModal(${index}, 'cover')" 
-                        style="flex: 1;">
-                    🖼️ Choose Different Image
-                </button>
             </div>
-            <div class="creative-placeholder" onclick="openMediaModal(${index}, 'cover')" style="border-color: #667eea;">
-                <span id="cover-placeholder-${index}">Select cover image above</span>
+            <div class="creative-placeholder" style="border-color: #667eea;">
+                <span id="cover-placeholder-${index}">Click "Use Video Thumbnail" above</span>
             </div>
             <img id="cover-preview-${index}" class="creative-preview" style="display: none;">
             <input type="hidden" id="cover-image-id-${index}">
@@ -531,14 +529,14 @@ function addAdForm(index, duplicateFrom = null) {
 
         <div class="form-group">
             <label>Call to Action</label>
-            <div class="cta-chips" id="cta-chips-${index}">
-                ${defaultCTAs.map(cta => `
-                    <div class="cta-chip" data-cta="${cta}" onclick="selectCTA(${index}, '${cta}')">
+            <div class="cta-buttons" id="cta-buttons-${index}">
+                ${mainCTAs.map(cta => `
+                    <button type="button" class="cta-button" data-cta="${cta}" onclick="selectCTA(${index}, '${cta}')">
                         ${cta.replace(/_/g, ' ')}
-                    </div>
+                    </button>
                 `).join('')}
             </div>
-            <input type="hidden" id="cta-${index}" value="INTERESTED">
+            <input type="hidden" id="cta-${index}" value="LEARN_MORE">
         </div>
 
         <div class="form-group">
@@ -559,8 +557,8 @@ function addAdForm(index, duplicateFrom = null) {
     // Populate identities
     populateIdentitiesForAd(index);
 
-    // Select INTERESTED as default CTA
-    setTimeout(() => selectCTA(index, 'INTERESTED'), 100);
+    // Select LEARN_MORE as default CTA
+    setTimeout(() => selectCTA(index, 'LEARN_MORE'), 100);
 
     // If duplicating, copy values
     if (duplicateFrom !== null) {
@@ -618,14 +616,14 @@ function removeAd(index) {
 
 // Select CTA
 function selectCTA(adIndex, cta) {
-    // Remove selected class from all CTAs for this ad
-    const chips = document.querySelectorAll(`#cta-chips-${adIndex} .cta-chip`);
-    chips.forEach(chip => chip.classList.remove('selected'));
+    // Remove selected class from all CTA buttons for this ad
+    const buttons = document.querySelectorAll(`#cta-buttons-${adIndex} .cta-button`);
+    buttons.forEach(button => button.classList.remove('selected'));
 
     // Add selected class to clicked CTA
-    const selectedChip = document.querySelector(`#cta-chips-${adIndex} .cta-chip[data-cta="${cta}"]`);
-    if (selectedChip) {
-        selectedChip.classList.add('selected');
+    const selectedButton = document.querySelector(`#cta-buttons-${adIndex} .cta-button[data-cta="${cta}"]`);
+    if (selectedButton) {
+        selectedButton.classList.add('selected');
     }
 
     // Update hidden input
