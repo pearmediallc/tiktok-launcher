@@ -102,6 +102,25 @@ if (!isset($_SESSION['selected_advertiser_id'])) {
             </div>
 
             <div class="form-section">
+                <h3>Budget Optimization</h3>
+                <div class="feature-toggle">
+                    <label>
+                        <input type="checkbox" id="cbo-enabled" onchange="toggleCBOBudget()">
+                        <span>Campaign Budget Optimization (CBO)</span>
+                    </label>
+                    <small>Enable to set budget at campaign level. When disabled, budget is set only at ad group level.</small>
+                </div>
+                
+                <div id="campaign-budget-section" style="display: none; margin-top: 15px;">
+                    <div class="form-group">
+                        <label>Campaign Daily Budget ($)</label>
+                        <input type="number" id="campaign-budget" value="50" min="20" placeholder="50">
+                        <small>Minimum $20 daily budget for Smart+ campaigns</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
                 <h3>Schedule</h3>
                 <div class="form-row">
                     <div class="form-group">
@@ -171,8 +190,9 @@ if (!isset($_SESSION['selected_advertiser_id'])) {
                 <h3>Budget & Bidding</h3>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Daily Budget ($)</label>
+                        <label>Ad Group Daily Budget ($)</label>
                         <input type="number" id="budget" value="50" min="50" placeholder="50" required>
+                        <small>Budget is set at ad group level when CBO is disabled</small>
                     </div>
                     <div class="form-group">
                         <label>Smart Bid (Recommended)</label>

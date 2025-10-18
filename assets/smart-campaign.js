@@ -134,6 +134,18 @@ function togglePixelMethod() {
     }
 }
 
+// Toggle CBO budget section
+function toggleCBOBudget() {
+    const cboEnabled = document.getElementById('cbo-enabled').checked;
+    const budgetSection = document.getElementById('campaign-budget-section');
+    
+    if (cboEnabled) {
+        budgetSection.style.display = 'block';
+    } else {
+        budgetSection.style.display = 'none';
+    }
+}
+
 // Step navigation
 function nextStep() {
     if (smartState.currentStep < 4) {
@@ -181,7 +193,12 @@ async function createSmartCampaign() {
     const autoPlacement = document.getElementById('auto-placement').checked;
     const creativeOptimization = document.getElementById('creative-optimization').checked;
     
+    // Get CBO settings
+    const cboEnabled = document.getElementById('cbo-enabled').checked;
+    const campaignBudget = parseFloat(document.getElementById('campaign-budget').value) || 50;
+    
     console.log('Smart Features:', { autoTargeting, autoPlacement, creativeOptimization });
+    console.log('CBO Settings:', { cboEnabled, campaignBudget });
 
     // Validate
     if (!campaignName) {
@@ -198,7 +215,9 @@ async function createSmartCampaign() {
                 auto_targeting: autoTargeting,
                 auto_placement: autoPlacement,
                 creative_optimization: creativeOptimization
-            }
+            },
+            cbo_enabled: cboEnabled,
+            campaign_budget: cboEnabled ? campaignBudget : null
         };
 
         // Add schedule times if provided

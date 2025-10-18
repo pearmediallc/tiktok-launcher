@@ -94,8 +94,9 @@ try {
                 'promotion_target_type' => 'EXTERNAL_WEBSITE', // Required for Lead Gen
                 'placement_type' => 'PLACEMENT_TYPE_NORMAL', // Required for Lead Gen
                 'location_ids' => ['6252001'], // United States
-                'budget_mode' => 'BUDGET_MODE_DYNAMIC_DAILY_BUDGET', // Required for Smart+ Lead Gen
-                'budget' => 50, // Minimum budget for Smart+
+                // Budget will be set based on CBO setting
+                'budget_mode' => 'BUDGET_MODE_INFINITE', // Default - budget set at ad group level
+                'budget_optimize_on' => false,
                 'schedule_type' => 'SCHEDULE_START_END',
                 'schedule_start_time' => date('Y-m-d H:i:s'),
                 'schedule_end_time' => date('Y-m-d H:i:s', strtotime('+1 year')),
@@ -126,6 +127,21 @@ try {
                     $endTime->add(new DateInterval('P1Y')); // Add 1 year
                     $params['schedule_end_time'] = $endTime->format('Y-m-d H:i:s');
                 }
+            }
+            
+            // Handle CBO (Campaign Budget Optimization) settings
+            if (isset($data['cbo_enabled']) && $data['cbo_enabled'] === true) {
+                // CBO enabled - set budget at campaign level
+                $params['budget_mode'] = 'BUDGET_MODE_DYNAMIC_DAILY_BUDGET';
+                $params['budget_optimize_on'] = true;
+                $params['budget'] = floatval($data['campaign_budget'] ?? 50);
+                logToFile("CBO Enabled - Campaign budget: " . $params['budget']);
+            } else {
+                // CBO disabled - budget set at ad group level only
+                $params['budget_mode'] = 'BUDGET_MODE_INFINITE';
+                $params['budget_optimize_on'] = false;
+                // No budget parameter needed for BUDGET_MODE_INFINITE
+                logToFile("CBO Disabled - Budget will be set at ad group level");
             }
             
             // Note: Smart+ Lead Generation campaigns don't require identity_id at campaign level
